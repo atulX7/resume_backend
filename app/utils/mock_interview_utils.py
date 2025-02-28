@@ -44,7 +44,7 @@ def process_ai_response(ai_response_json: str, interview_log: list[dict[str, any
         evaluation_results.append({
             "question_id": question_id,
             "question": entry["question"],
-            "audio_presigned_url": generate_presigned_url(entry["audio_s3_url"]),
+            "audio_presigned_url": generate_presigned_url(entry["audio_s3_url"]) if entry["audio_s3_url"] else "",
             "score": eval_data.get("score", 0.0),
             "feedback": eval_data.get("feedback", "No feedback available."),
             "follow_up_question": eval_data.get("follow_up_question", "")
