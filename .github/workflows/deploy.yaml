@@ -1,1 +1,69 @@
-sample
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - feature-atul  # Adjust this if you deploy from a different branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ./id_rsa
+          chmod 600 ./id_rsa
+
+      - name: Deploy Backend via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # Ensure Git is installed using yum (for Amazon Linux)
+            if ! command -v git &> /dev/null; then
+              echo "Git not found. Installing Git..."
+              sudo yum install -y git
+            fi
+
+            # Clone or update the backend repository in /var/www/resume_backend
+            if [ ! -d /var/www/resume_backend ] || [ ! -d /var/www/resume_backend/.git ]; then
+              echo "Directory missing or not a valid git repository. Cloning repository..."
+              sudo rm -rf /var/www/resume_backend
+              sudo git clone -b main https://github.com/atulX7/resume_backend.git /var/www/resume_backend
+              # Change ownership so the current user can work with the repository
+              sudo chown -R $(whoami):$(whoami) /var/www/resume_backend
+              cd /var/www/resume_backend
+            else
+              cd /var/www/resume_backend
+              echo "Pulling latest changes..."
+              git pull origin main
+            fi
+
+            # Ensure the project file exists
+            if [ ! -f pyproject.toml ]; then
+              echo "Error: pyproject.toml not found in /var/www/resume_backend"
+              exit 1
+            fi
+
+            # Ensure Poetry is installed
+            if ! command -v poetry &> /dev/null; then
+              echo "Poetry not found. Installing Poetry..."
+              curl -sSL https://install.python-poetry.org | python3 -
+              export PATH="$HOME/.local/bin:$PATH"
+            fi
+
+            # Install dependencies with Poetry
+            poetry install
+
+            # Run database migrations with Alembic
+            poetry run alembic upgrade head
+
+            # Stop any running uvicorn instance (if needed)
+            pkill -f "uvicorn main:app" || true
+
+            # Start the Uvicorn server in the background
+            nohup poetry run uvicorn main:app --host 0.0.0.0 --port 80 > uvicorn.log 2>&1 &
