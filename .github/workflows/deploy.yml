@@ -44,7 +44,9 @@ jobs:
           sudo apt install -y python3.12 python3.12-venv python3.12-dev
 
           # ✅ Step 3.4: Install Poetry
-          sudo apt install -y python3-poetry
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
           poetry --version
           
           # ✅ Step 3.5: Set Up Virtual Environment & Install Dependencies
