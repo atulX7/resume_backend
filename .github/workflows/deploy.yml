@@ -3,7 +3,7 @@ name: Deploy FastAPI to Ubuntu EC2
 on:
   push:
     branches:
-      - main  # Change to your deployment branch
+      - neelam-cicd  # Change to your deployment branch
 
 jobs:
   deploy:
