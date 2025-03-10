@@ -6,7 +6,7 @@ authors = [
     {name = "neelam",email = "neelamyadav1@kpmg.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "python-dotenv (>=1.0.1,<2.0.0)",
     "fastapi (>=0.115.8,<0.116.0)",
