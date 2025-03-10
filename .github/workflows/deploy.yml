@@ -35,7 +35,7 @@ jobs:
           # ✅ Step 3.2: Clone Code
           echo "📥 Pulling latest code..."
             if [ ! -d ".git" ]; then
-              git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git .
+              git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git ~/fastapi_app
             else
               git reset --hard
               git pull origin main
@@ -75,37 +75,26 @@ jobs:
           echo "✅ Database migrations applied."
 
           # ✅ Step 3.7: Configure & Restart FastAPI with Systemd
-          echo "🚀 Restarting FastAPI Application using systemd..."
-          sudo tee /etc/systemd/system/fastapi.service > /dev/null <<EOF2
-          [Unit]
-          Description=FastAPI Application
-          After=network.target
+          echo "🚀 Restarting FastAPI Application..."
+          if ! command -v pm2 &> /dev/null; then
+              echo "📦 Installing PM2..."
+              sudo npm install -g pm2
+          fi
+          pm2 restart fastapi_app || pm2 start "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" --name fastapi_app
 
-          [Service]
-          User=ubuntu
-          WorkingDirectory=/home/ubuntu/fastapi_app
-          ExecStart=/home/ubuntu/fastapi_app/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-          Restart=always
-          StandardOutput=journal
-          StandardError=journal
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF2
-
-          # Reload systemd & restart FastAPI
-          sudo systemctl daemon-reload
-          sudo systemctl restart fastapi
-          sudo systemctl enable fastapi
           echo "✅ FastAPI Service Restarted Successfully!"
         
 
     # ✅ Step 4: Verify Deployment
     - name: Verify FastAPI Deployment
-      run: |
-        echo "🛠️ Checking FastAPI status..."
-        ssh -o StrictHostKeyChecking=no -i ./id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🛠️ Checking FastAPI status..."
           sudo systemctl status fastapi --no-pager
           curl -f http://localhost:8000/docs || (echo "❌ FastAPI is NOT running!" && exit 1)
           echo "✅ FastAPI is running successfully!"
-        EOF
+  
