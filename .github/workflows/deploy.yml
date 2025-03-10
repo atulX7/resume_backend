@@ -1,0 +1,109 @@
+name: Deploy FastAPI to Ubuntu EC2
+
+on:
+  push:
+    branches:
+      - main  # Change to your deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ✅ Step 1: Checkout repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # ✅ Step 2: Set up SSH Key
+    - name: Set up SSH Key
+      run: |
+        echo "${{ secrets.EC2_SSH_KEY }}" > ./id_rsa
+        chmod 600 ./id_rsa
+
+    # ✅ Step 3: Deploy to EC2
+    - name: Deploy FastAPI Backend to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ./id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+
+          # ✅ Step 3.1: Ensure Backend Directory Exists
+          echo "🔄 Checking if fastapi_app directory exists..."
+          if [ -d "~/fastapi_app" ]; then
+            echo "🛑 Directory exists. Deleting and recreating..."
+            rm -rf ~/fastapi_app
+          fi
+          mkdir -p ~/fastapi_app
+          echo "✅ Directory ready."
+
+          # ✅ Step 3.2: Transfer Code
+          echo "🚀 Transferring project files to EC2..."
+          scp -o StrictHostKeyChecking=no -i ./id_rsa -r ./* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/fastapi_app
+          echo "✅ Code transfer completed."
+
+          # ✅ Step 3.3: Install Python & Dependencies
+          echo "🐍 Ensuring Python & Virtual Environment"
+          sudo apt update -y
+          sudo apt install -y python3.12 python3.12-venv python3.12-dev
+
+          # ✅ Step 3.4: Set Up Virtual Environment & Install Dependencies
+          cd ~/fastapi_app
+          python3.12 -m venv venv
+          source venv/bin/activate
+          pip install poetry
+          poetry install --no-root
+          echo "✅ Dependencies installed."
+
+          # ✅ Step 3.5: Create .env File with GitHub Secrets
+          echo "📌 Creating .env file"
+          cat <<EOT > .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          SMTP_SERVER=${{ secrets.SMTP_SERVER }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+          EOT
+          echo "✅ .env file created."
+
+          # ✅ Step 3.6: Apply Alembic Migrations
+          echo "🛠️ Applying Alembic Migrations..."
+          alembic upgrade head
+          echo "✅ Database migrations applied."
+
+          # ✅ Step 3.7: Configure & Restart FastAPI with Systemd
+          echo "🚀 Restarting FastAPI Application using systemd..."
+          sudo tee /etc/systemd/system/fastapi.service > /dev/null <<EOF2
+          [Unit]
+          Description=FastAPI Application
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          WorkingDirectory=/home/ubuntu/fastapi_app
+          ExecStart=/home/ubuntu/fastapi_app/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+          Restart=always
+          StandardOutput=journal
+          StandardError=journal
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF2
+
+          # Reload systemd & restart FastAPI
+          sudo systemctl daemon-reload
+          sudo systemctl restart fastapi
+          sudo systemctl enable fastapi
+          echo "✅ FastAPI Service Restarted Successfully!"
+        EOF
+
+    # ✅ Step 4: Verify Deployment
+    - name: Verify FastAPI Deployment
+      run: |
+        echo "🛠️ Checking FastAPI status..."
+        ssh -o StrictHostKeyChecking=no -i ./id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          sudo systemctl status fastapi --no-pager
+          curl -f http://localhost:8000/docs || (echo "❌ FastAPI is NOT running!" && exit 1)
+          echo "✅ FastAPI is running successfully!"
+        EOF
