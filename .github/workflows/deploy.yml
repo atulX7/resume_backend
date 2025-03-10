@@ -25,21 +25,18 @@ jobs:
           echo "🔄 Connecting to EC2 instance..."
           # ✅ Step 3.1: Ensure Backend Directory Exists
           echo "🔄 Checking if fastapi_app directory exists..."
-          if [ -d "~/fastapi_app" ]; then
-            echo "🛑 Directory exists. Deleting and recreating..."
-            rm -rf ~/fastapi_app
+          if [ -d "$HOME/fastapi_app/.git" ]; then
+            echo "📥 Directory already exists, pulling latest changes..."
+            cd $HOME/fastapi_app
+            git reset --hard
+            git pull origin neelam-cicd
+          else
+            echo "🛑 Directory missing or not a valid git repository. Cloning fresh..."
+            rm -rf $HOME/fastapi_app  # Just in case there is a corrupted or non-git folder
+            git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git $HOME/fastapi_app
           fi
-          mkdir -p ~/fastapi_app
-          echo "✅ Directory ready."
 
-          # ✅ Step 3.2: Clone Code
-          echo "📥 Pulling latest code..."
-            if [ ! -d ".git" ]; then
-              git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git ~/fastapi_app
-            else
-              git reset --hard
-              git pull origin main
-            fi
+          echo "✅ Code update complete."
 
           # ✅ Step 3.3: Install Python & Dependencies
           echo "🐍 Ensuring Python & Virtual Environment"
