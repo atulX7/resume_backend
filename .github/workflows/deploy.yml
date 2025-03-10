@@ -45,9 +45,12 @@ jobs:
 
           # ✅ Step 3.4: Install Poetry
           curl -sSL https://install.python-poetry.org | python3 -
-          echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
-          source ~/.bashrc
-          poetry --version
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.profile  # Ensures it's available for non-interactive shells
+          source ~/.bashrc || source ~/.profile  # Load the changes
+          export PATH="$HOME/.local/bin:$PATH"  # Explicitly set the PATH in the current session
+          poetry --version  # Verify Poetry installation
+
           
           # ✅ Step 3.5: Set Up Virtual Environment & Install Dependencies
           cd ~/fastapi_app
