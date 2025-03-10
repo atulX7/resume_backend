@@ -14,28 +14,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # ✅ Step 2: Set up SSH Key
-    - name: Set up SSH Key
-      run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" > ./id_rsa
-        chmod 600 ./id_rsa
-
-    - name: Debug SSH Key
-      run: |
-        ls -lah
-        if [ -f ./id_rsa ]; then
-          echo "✅ SSH key exists!"
-        else
-          echo "❌ SSH key missing!"
-          exit 1  # Fail the pipeline if the key is missing
-        fi
-
-
-    # ✅ Step 3: Deploy to EC2
+    # ✅ Step 2: Deploy to EC2
     - name: Deploy FastAPI Backend to EC2
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ./id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🔄 Connecting to EC2 instance..."
           # ✅ Step 3.1: Ensure Backend Directory Exists
           echo "🔄 Checking if fastapi_app directory exists..."
           if [ -d "~/fastapi_app" ]; then
@@ -45,10 +32,14 @@ jobs:
           mkdir -p ~/fastapi_app
           echo "✅ Directory ready."
 
-          # ✅ Step 3.2: Transfer Code
-          echo "🚀 Transferring project files to EC2..."
-          scp -o StrictHostKeyChecking=no -i ./id_rsa -r . ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/fastapi_app
-          echo "✅ Code transfer completed."
+          # ✅ Step 3.2: Clone Code
+          echo "📥 Pulling latest code..."
+            if [ ! -d ".git" ]; then
+              git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git .
+            else
+              git reset --hard
+              git pull origin main
+            fi
 
           # ✅ Step 3.3: Install Python & Dependencies
           echo "🐍 Ensuring Python & Virtual Environment"
@@ -65,7 +56,7 @@ jobs:
 
           # ✅ Step 3.5: Create .env File with GitHub Secrets
           echo "📌 Creating .env file"
-          cat <<EOT > .env
+          cat <<EOF > .env
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
@@ -75,7 +66,7 @@ jobs:
           SMTP_PORT=${{ secrets.SMTP_PORT }}
           SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
-          EOT
+          EOF
           echo "✅ .env file created."
 
           # ✅ Step 3.6: Apply Alembic Migrations
@@ -107,7 +98,7 @@ jobs:
           sudo systemctl restart fastapi
           sudo systemctl enable fastapi
           echo "✅ FastAPI Service Restarted Successfully!"
-        EOF
+        
 
     # ✅ Step 4: Verify Deployment
     - name: Verify FastAPI Deployment
