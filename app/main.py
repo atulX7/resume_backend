@@ -19,12 +19,13 @@ from app.api.routes import auth, resume, ai_resume, cover_letter, share, scoring
 from app.database.connection import SessionLocal
 from app.database.seeder import seed_roles
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Change this for production
+    allow_origins=settings.ALLOW_ORIGINS,  # Change this for production
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
