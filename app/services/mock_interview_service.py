@@ -23,6 +23,8 @@ from app.utils.utils import generate_question_id, parse_ai_response
 
 def start_mock_interview(db: Session, user_id: str, job_title: str, job_description: str, resume_file: UploadFile):
     """Starts a new mock interview session by storing resume and initializing the interview."""
+    # ✅ Extract resume text from S3
+    resume_text = extract_resume_text(resume_file)
     # ✅ Upload resume to S3
     resume_s3_url = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/resume_02118e79-aa1e-4792-b5ca-6f6363ab0dd0.pdf"
     # resume_s3_url = upload_resume_to_s3(resume_file, user_id)
@@ -30,8 +32,6 @@ def start_mock_interview(db: Session, user_id: str, job_title: str, job_descript
     # ✅ Create a new session
     session = create_mock_interview_session(db, user_id, job_title, job_description, resume_s3_url)
 
-    # ✅ Extract resume text from S3
-    resume_text = extract_resume_text(resume_file)
     # ✅ Generate remaining 19 questions in one API call
     prompt = INTERVIEW_QUESTION_PROMPT.format(
         max_questions=MAX_QUESTIONS_PER_SESSION,
