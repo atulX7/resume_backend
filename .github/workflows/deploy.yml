@@ -80,10 +80,15 @@ jobs:
           echo "✅ Database migrations applied."
 
           # ✅ Step 3.7: Configure & Restart FastAPI with Systemd
+          echo "🚀 Stopping any existing FastAPI process..."
+          ps aux | grep "uvicorn" | grep -v "grep" | awk '{print $2}' | xargs -r kill -9
+          echo "✅ Existing process stopped (if any)."
+
           echo "🚀 Restarting FastAPI Application..."
-          pkill -f "uvicorn" || true  # Stop any existing FastAPI process
+          cd ~/fastapi_app
           nohup poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > ~/fastapi_app/server.log 2>&1 &
-          echo "✅ FastAPI Service Restarted Successfully!"
+          disown
+          echo "✅ FastAPI Application started successfully."
         
 
     # ✅ Step 4: Verify Deployment
@@ -96,5 +101,11 @@ jobs:
         script: |
           echo "🛠️ Checking FastAPI status..."
           sleep 5
-          curl -f http://${{ secrets.EC2_HOST }}:8000/docs || (echo "❌ FastAPI is NOT running!" && exit 1)
+          if curl -f http://localhost:8000/docs; then
+            echo "✅ FastAPI is running!"
+          else
+            echo "❌ FastAPI failed to start! Check logs."
+            cat ~/fastapi_app/server.log
+            exit 1
+          fi
   
