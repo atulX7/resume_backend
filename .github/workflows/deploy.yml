@@ -43,15 +43,19 @@ jobs:
           sudo apt update -y
           sudo apt install -y python3.12 python3.12-venv python3.12-dev
 
-          # ✅ Step 3.4: Set Up Virtual Environment & Install Dependencies
+          # ✅ Step 3.4: Install Poetry
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+          source ~/.bashrc
+          poetry --version
+          
+          # ✅ Step 3.5: Set Up Virtual Environment & Install Dependencies
           cd ~/fastapi_app
-          python3.12 -m venv venv
-          source venv/bin/activate
-          pip install poetry
+          poetry env use python3.12
           poetry install --no-root
           echo "✅ Dependencies installed."
 
-          # ✅ Step 3.5: Create .env File with GitHub Secrets
+          # ✅ Step 3.6: Create .env File with GitHub Secrets
           echo "📌 Creating .env file"
           cat <<EOF > .env
           DATABASE_URL=${{ secrets.DATABASE_URL }}
@@ -66,19 +70,16 @@ jobs:
           EOF
           echo "✅ .env file created."
 
-          # ✅ Step 3.6: Apply Alembic Migrations
+          # ✅ Step 3.7: Apply Alembic Migrations
           echo "🛠️ Applying Alembic Migrations..."
-          alembic upgrade head
+          export DATABASE_URL=${{ secrets.DATABASE_URL }}
+          poetry run alembic upgrade head
           echo "✅ Database migrations applied."
 
           # ✅ Step 3.7: Configure & Restart FastAPI with Systemd
           echo "🚀 Restarting FastAPI Application..."
-          if ! command -v pm2 &> /dev/null; then
-              echo "📦 Installing PM2..."
-              sudo npm install -g pm2
-          fi
-          pm2 restart fastapi_app || pm2 start "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" --name fastapi_app
-
+          pkill -f "uvicorn" || true  # Stop any existing FastAPI process
+          nohup poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > ~/fastapi_app/server.log 2>&1 &
           echo "✅ FastAPI Service Restarted Successfully!"
         
 
@@ -91,7 +92,6 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           echo "🛠️ Checking FastAPI status..."
-          sudo systemctl status fastapi --no-pager
-          curl -f http://localhost:8000/docs || (echo "❌ FastAPI is NOT running!" && exit 1)
-          echo "✅ FastAPI is running successfully!"
+          sleep 5
+          curl -f http://${{ secrets.EC2_HOST }}:8000/docs || (echo "❌ FastAPI is NOT running!" && exit 1)
   
