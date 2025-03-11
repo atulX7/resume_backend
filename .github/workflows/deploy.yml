@@ -64,12 +64,13 @@ jobs:
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
-          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          SMTP_SERVER=${{ secrets.SMTP_SERVER }}
-          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_SERVER=${{ vars.SMTP_SERVER }}
+          SMTP_PORT=${{ vars.SMTP_PORT }}
           SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+          ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
           EOF
           echo "✅ .env file created."
 
