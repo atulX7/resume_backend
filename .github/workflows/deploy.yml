@@ -84,7 +84,11 @@ jobs:
           echo "🚀 Stopping any existing FastAPI process..."
           ps aux | grep "uvicorn" | grep -v "grep" | awk '{print $2}' | xargs -r kill -9
           echo "✅ Existing process stopped (if any)."
-
+          # Find the process running on port 8000
+          sudo lsof -i :8000
+          # Kill the process using that port
+          sudo kill -9 $(sudo lsof -t -i :8000)
+          
           echo "🚀 Restarting FastAPI Application..."
           cd ~/fastapi_app
           nohup poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > ~/fastapi_app/server.log 2>&1 &
