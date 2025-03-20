@@ -1,0 +1,116 @@
+name: Deploy FastAPI to Ubuntu EC2
+
+on:
+  push:
+    branches:
+      - main  # Change to your deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ✅ Step 1: Checkout repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # ✅ Step 2: Deploy to EC2
+    - name: Deploy FastAPI Backend to EC2
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🔄 Connecting to EC2 instance..."
+          # ✅ Step 3.1: Ensure Backend Directory Exists
+          echo "🔄 Checking if fastapi_app directory exists..."
+          if [ -d "$HOME/fastapi_app/.git" ]; then
+            echo "📥 Directory already exists, pulling latest changes..."
+            cd $HOME/fastapi_app
+            git reset --hard
+            git pull origin neelam-cicd
+          else
+            echo "🛑 Directory missing or not a valid git repository. Cloning fresh..."
+            rm -rf $HOME/fastapi_app  # Just in case there is a corrupted or non-git folder
+            git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git $HOME/fastapi_app
+          fi
+
+          echo "✅ Code update complete."
+
+          # ✅ Step 3.3: Install Python & Dependencies
+          echo "🐍 Ensuring Python & Virtual Environment"
+          sudo apt update -y
+          sudo apt install -y python3.12 python3.12-venv python3.12-dev
+
+          # ✅ Step 3.4: Install Poetry
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.profile  # Ensures it's available for non-interactive shells
+          source ~/.bashrc || source ~/.profile  # Load the changes
+          export PATH="$HOME/.local/bin:$PATH"  # Explicitly set the PATH in the current session
+          poetry --version  # Verify Poetry installation
+
+          
+          # ✅ Step 3.5: Set Up Virtual Environment & Install Dependencies
+          cd ~/fastapi_app
+          poetry env use python3.12
+          poetry install --no-root
+          echo "✅ Dependencies installed."
+
+          # ✅ Step 3.6: Create .env File with GitHub Secrets
+          echo "📌 Creating .env file"
+          cat <<EOF > .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+          S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          SMTP_SERVER=${{ vars.SMTP_SERVER }}
+          SMTP_PORT=${{ vars.SMTP_PORT }}
+          SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+          ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
+          EOF
+          echo "✅ .env file created."
+
+          # ✅ Step 3.7: Apply Alembic Migrations
+          echo "🛠️ Applying Alembic Migrations..."
+          export DATABASE_URL=${{ secrets.DATABASE_URL }}
+          poetry run alembic upgrade head
+          echo "✅ Database migrations applied."
+
+          # ✅ Step 3.7: Configure & Restart FastAPI with Systemd
+          echo "🚀 Stopping any existing FastAPI process..."
+          ps aux | grep "uvicorn" | grep -v "grep" | awk '{print $2}' | xargs -r kill -9
+          echo "✅ Existing process stopped (if any)."
+          # Find the process running on port 8000
+          sudo lsof -i :8000
+          # Kill the process using that port
+          sudo kill -9 $(sudo lsof -t -i :8000)
+          
+          echo "🚀 Restarting FastAPI Application..."
+          cd ~/fastapi_app
+          nohup poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > ~/fastapi_app/server.log 2>&1 &
+          disown
+          echo "✅ FastAPI Application started successfully."
+        
+
+    # ✅ Step 4: Verify Deployment
+    - name: Verify FastAPI Deployment
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🛠️ Checking FastAPI status..."
+          sleep 5
+          if curl -f http://localhost:8000/docs; then
+            echo "✅ FastAPI is running!"
+          else
+            echo "❌ FastAPI failed to start! Check logs."
+            cat ~/fastapi_app/server.log
+            exit 1
+          fi
+  

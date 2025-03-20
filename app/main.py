@@ -15,19 +15,25 @@
 
 ## main.py - FastAPI Entry Point
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.routes import auth, resume, ai_resume, cover_letter, share, scoring, mock_interview
 from app.database.connection import SessionLocal
 from app.database.seeder import seed_roles
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
+print(f"ALLOW_ORIGINS: {settings.ALLOW_ORIGINS}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Change this for production
+    allow_origins=[origin.strip() for origin in settings.ALLOW_ORIGINS if origin],  # Change this for production
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"],  # Ensure response headers are accessible
+    max_age=600,  # Cache preflight responses for 10 minutes
 )
 
 # Include all API routers
