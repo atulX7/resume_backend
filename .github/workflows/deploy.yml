@@ -71,6 +71,7 @@ jobs:
           SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
           ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
+          MOCK_DATA=${{ vars.MOCK_DATA }}
           EOF
           echo "✅ .env file created."
 
