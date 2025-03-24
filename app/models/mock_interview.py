@@ -18,4 +18,4 @@ class MockInterviewSession(Base):
     interview_log = Column(MutableList.as_mutable(JSONB), default=[])  # ✅ Now tracks changes
     ai_feedback = Column(JSON, default={})  # ✅ AI-generated analysis
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    status = Column(String, default="in_progress")  # "in_progress", "completed"
+    status = Column(String, default="in_progress")  # "in_progress", "completed", "failed"

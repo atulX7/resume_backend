@@ -29,6 +29,10 @@ class MockInterviewProcessingResponse(BaseModel):
     skill_assessment: Dict[str, float]  # ✅ Scores for Leadership, Communication, etc.
     evaluation_results: List[AnswerEvaluation]  # ✅ Stores evaluations for each Q&A
 
+class ProcessingStartedResponse(BaseModel):
+    status: str
+    message: str
+
 class MockInterviewSessionDetails(BaseModel):
     """Detailed response for a single mock interview session."""
     session_id: str

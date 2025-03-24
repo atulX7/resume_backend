@@ -28,9 +28,14 @@ def update_mock_interview_session(db: Session, session):
     return session
 
 
-def save_interview_results(db: Session, session, evaluation_results, final_evaluation):
+def update_interview_status(db: Session, session, status):
+    session.status = status
+    update_mock_interview_session(db, session)
+
+
+def save_interview_results(db: Session, session, evaluation_results, final_evaluation, status):
     """Saves evaluation results in the database."""
     session.interview_log = evaluation_results
     session.ai_feedback = final_evaluation
-    session.status = "completed"
+    session.status = status
     update_mock_interview_session(db, session)

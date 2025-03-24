@@ -8,6 +8,7 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     ALLOW_ORIGINS: list = os.getenv("ALLOW_ORIGINS", "http://localhost:3000").split(",")
+    MOCK_DATA: bool = os.getenv("MOCK_DATA", "True").lower() in ("true", "1", "yes")
 
     # AWS Credentials (Ensure these are set in .env)
     AWS_ACCESS_KEY: str = os.getenv("AWS_ACCESS_KEY")

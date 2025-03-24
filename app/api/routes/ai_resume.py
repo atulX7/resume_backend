@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.middleware.auth_dependency import get_current_user
 from app.services.ai_resume_service import tailor_resume
+from app.utils.constants import FEATURE_RESUME_TAILOR
+from app.utils.plan_usage import check_feature_access
 
 router = APIRouter()
 
@@ -17,7 +19,7 @@ async def tailor_resume_api(
     current_user=Depends(get_current_user)
 ):
     """Tailors a user's resume to a specific job description using AI, providing inline review suggestions."""
-
+    check_feature_access(db, current_user.id, FEATURE_RESUME_TAILOR)
     # ✅ Call AI resume tailoring service
     tailored_response = tailor_resume(db, current_user.id, job_title, job_description, skills, user_resume)
 

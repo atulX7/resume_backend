@@ -15,17 +15,14 @@
 
 ## main.py - FastAPI Entry Point
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from app.api.routes import auth, resume, ai_resume, cover_letter, share, scoring, mock_interview
+from app.api.routes import auth, resume, ai_resume, cover_letter, share, scoring, mock_interview, plans
 from app.database.connection import SessionLocal
-from app.database.seeder import seed_roles
+from app.database.seeder import initialize_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
-print(f"ALLOW_ORIGINS: {settings.ALLOW_ORIGINS}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in settings.ALLOW_ORIGINS if origin],  # Change this for production
@@ -45,10 +42,11 @@ app.include_router(cover_letter.router, prefix="/cover-letter", tags=["Cover Let
 app.include_router(share.router, prefix="/share", tags=["Public Sharing"])
 app.include_router(scoring.router, prefix="/score", tags=["Resume Scoring"])
 app.include_router(mock_interview.router, prefix="/mock-interview", tags=["Mock Interviews"])
+app.include_router(plans.router, prefix="/plans", tags=["Plans"])
 
 # ✅ Run database seeder at startup
 with SessionLocal() as db:
-    seed_roles(db)
+    initialize_db(db)
 
 
 @app.get("/")

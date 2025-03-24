@@ -25,6 +25,12 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     role = relationship("Role")
+    user_plan = relationship("UserPlanUsage", back_populates="user", uselist=False)
+
+    def has_premium_access(self):
+        """Check if user has an active premium plan."""
+        return self.user_plan and self.user_plan.plan.is_premium and (
+                    self.user_plan.expiry_date is None or self.user_plan.expiry_date > datetime.now(datetime.UTC))
 
 
 class Account(Base):

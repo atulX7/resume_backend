@@ -5,3 +5,6 @@ class SyncUserRequest(BaseModel):
 
 class SyncUserResponse(BaseModel):
     user_id: str
+    plan_code: str
+    is_premium: bool
+

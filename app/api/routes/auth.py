@@ -14,6 +14,6 @@ async def sync_user(user_data: SyncUserRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Access token is required")
 
     # ✅ Sync user with the database
-    user_id = sync_user_service(db, user_data.access_token)
+    user = sync_user_service(db, user_data.access_token)
 
-    return {"user_id": user_id}
+    return user

@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.middleware.auth_dependency import get_current_user
@@ -9,10 +9,11 @@ from app.services.mock_interview_service import (
     get_mock_interview_session_details
 )
 from app.schemas.mock_interview import (
-    MockInterviewQuestionResponse, MockInterviewProcessingResponse, MockInterviewSessionSummary,
-    MockInterviewSessionDetails
+    MockInterviewQuestionResponse, MockInterviewSessionSummary,
+    MockInterviewSessionDetails, ProcessingStartedResponse
 )
-
+from app.utils.constants import FEATURE_MOCK_INTERVIEW
+from app.utils.plan_usage import check_feature_access
 
 router = APIRouter()
 
@@ -25,12 +26,14 @@ async def start_interview(
     current_user=Depends(get_current_user)
 ):
     """Starts a mock interview session and generates all questions in one call."""
+    check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
     return start_mock_interview(db, current_user.id, job_title, job_description, resume_file)
 
 
-@router.post("/{session_id}/process", response_model=MockInterviewProcessingResponse)
+@router.post("/{session_id}/process", response_model=ProcessingStartedResponse)
 async def process_interview(
     session_id: str,
+    background_tasks: BackgroundTasks,
     question_audio_map: str = Form(...),  # JSON mapping of question_id -> filenames
     audio_files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
@@ -39,8 +42,13 @@ async def process_interview(
     """
     Processes all answers, evaluates them, and generates final interview results.
     """
+    check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
     question_audio_map = json.loads(question_audio_map)  # Convert JSON string to dict
-    return await process_mock_interview(db, current_user.id, session_id, question_audio_map, audio_files)
+    # Schedule background processing
+    background_tasks.add_task(
+        process_mock_interview, db, current_user.id, session_id, question_audio_map, audio_files
+    )
+    return {"status": "processing", "message": "Your interview is being evaluated. You'll be notified once it's done."}
 
 
 @router.get("/sessions", response_model=list[MockInterviewSessionSummary])
