@@ -29,11 +29,11 @@ jobs:
             echo "📥 Directory already exists, pulling latest changes..."
             cd $HOME/fastapi_app
             git reset --hard
-            git pull origin neelam-cicd
+            git pull origin main
           else
             echo "🛑 Directory missing or not a valid git repository. Cloning fresh..."
             rm -rf $HOME/fastapi_app  # Just in case there is a corrupted or non-git folder
-            git clone -b neelam-cicd https://github.com/atulX7/resume_backend.git $HOME/fastapi_app
+            git clone https://github.com/atulX7/resume_backend.git $HOME/fastapi_app
           fi
 
           echo "✅ Code update complete."
