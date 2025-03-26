@@ -23,9 +23,10 @@ from app.core.config import settings
 
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
+print("✅ Final ALLOW_ORIGINS:", settings.ALLOW_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in settings.ALLOW_ORIGINS if origin],  # Change this for production
+    allow_origins=["*"],  # Change this for production
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
