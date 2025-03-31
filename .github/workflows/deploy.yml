@@ -112,11 +112,11 @@ jobs:
           echo "✅ Celery Worker started successfully."
 
           # Start Flower, binding to 0.0.0.0 so it’s accessible externally
-          echo "🚀 Starting Flower..."
-          nohup poetry run celery -A app.celery_app.celery_app flower --address=0.0.0.0 --port=5555 > logs/flower.log 2>&1 < /dev/null &
-          disown
-          sudo ufw allow 5555/tcp
-          echo "✅ Flower started successfully and should be accessible externally on port 5555."
+#          echo "🚀 Starting Flower..."
+#          nohup poetry run celery -A app.celery_app.celery_app flower --address=0.0.0.0 --port=5555 > logs/flower.log 2>&1 < /dev/null &
+#          disown
+#          sudo ufw allow 5555/tcp
+#          echo "✅ Flower started successfully and should be accessible externally on port 5555."
 
     # ✅ Step 4: Verify Deployment
     - name: Verify FastAPI Deployment
