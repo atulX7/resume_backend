@@ -1,0 +1,74 @@
+name: Backend One-Time Setup Ubuntu EC2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: One Time Setup
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            echo "⚙️ Setting up machine"
+            sudo apt-get update
+            sudo apt-get install nginx certbot python3-certbot-nginx -y
+      
+            echo "🧼 Removing default NGINX site..."
+            sudo rm -f /etc/nginx/sites-enabled/default
+      
+            echo "🔧 Configuring frontend server block..."
+            sudo bash -c 'cat <<EOL > /etc/nginx/sites-available/backend
+            server {
+              listen 80;
+              server_name ${{ vars.SERVER_CERT_NAME }};
+      
+              location / {
+                proxy_pass http://localhost:8000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "Upgrade";
+              }
+      
+              error_page 502 /502.html;
+            }
+            EOL'
+      
+            echo "🔗 Enabling backend site..."
+            sudo ln -sf /etc/nginx/sites-available/backend /etc/nginx/sites-enabled/backend
+      
+            # Test and restart NGINX
+            sudo nginx -t && sudo systemctl restart nginx
+            echo "✅ NGINX restarted."
+      
+            echo "🔐 Issuing SSL certificate using Certbot"
+            sudo certbot --nginx \
+              --non-interactive \
+              --agree-tos \
+              --redirect \
+              --email neelamvivaan23@gmail.com \
+              --cert-name ${{ vars.SERVER_CERT_NAME }} \
+              -d ${{ vars.SERVER_CERT_NAME }}
+      
+            echo "🔁 Restarting NGINX after Certbot setup"
+            sudo systemctl restart nginx
+      
+            echo "🌐 Configuring firewall rules..."
+            sudo ufw allow 22/tcp  # Ensure SSH is not blocked
+            sudo ufw allow 80/tcp   # Ensure NGINX is accessible
+            sudo ufw allow 443/tcp # Ensure ssl is accessible
+            sudo ufw allow 8000/tcp 
+            sudo ufw allow 5555/tcp 
+            echo "y" | sudo ufw enable
+            echo "✅ Firewall configured."
+
