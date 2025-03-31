@@ -60,7 +60,8 @@ jobs:
           echo "✅ Dependencies installed."
           
           # Create logs directory for centralized logging
-          sudo mkdir -p logs
+          mkdir -p logs
+          chmod 755 logs
 
           # ✅ Step 3.6: Create .env File with GitHub Secrets
           echo "📌 Creating .env file"
