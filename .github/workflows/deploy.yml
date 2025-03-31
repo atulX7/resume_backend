@@ -40,12 +40,25 @@ jobs:
           echo "✅ Code update complete."
 
           # ✅ Step 3.3: Install Python & Dependencies
-          echo "🐍 Ensuring Python & Virtual Environment"
+          echo "🐍 Installing dependencies for pyenv..."
           sudo apt update -y
-          sudo apt install -y software-properties-common
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt update -y
-          sudo apt install -y python3.11 python3.11-venv python3.11-dev
+          sudo apt install -y build-essential curl libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
+
+          echo "🐍 Installing pyenv..."
+          curl https://pyenv.run | bash
+
+          # Add pyenv initialization to the current shell
+          echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
+          echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
+          echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          eval "$(pyenv init --path)"
+          eval "$(pyenv virtualenv-init -)"
+
+          echo "🐍 Installing Python 3.11.5 using pyenv..."
+          pyenv install 3.11.5
+          pyenv global 3.11.5
+          echo "✅ Python version: $(python --version)"
 
           # ✅ Step 3.4: Install Poetry
           curl -sSL https://install.python-poetry.org | python3 -
@@ -120,6 +133,14 @@ jobs:
           disown
           echo "✅ Flower started successfully and should be accessible externally on port 5555."
                     
+          echo "🌐 Configuring firewall rules..."
+          sudo ufw allow 22/tcp  # Ensure SSH is not blocked
+          sudo ufw allow 80/tcp   # Ensure NGINX is accessible
+          sudo ufw allow 443/tcp # Ensure ssl is accessible
+          sudo ufw allow 8000/tcp 
+          sudo ufw allow 5555/tcp 
+          echo "y" | sudo ufw enable
+          echo "✅ Firewall configured."
           sleep 5
           exit 0
 
