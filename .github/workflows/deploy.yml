@@ -154,7 +154,7 @@ jobs:
         script: |
           echo "🛠️ Checking FastAPI status..."
           sleep 5
-          if curl -f https://${{ vars.SERVER_CERT_NAME }}/docs; then
+          if curl -f http://localhost:8000/docs; then
             echo "✅ FastAPI is running!"
           else
             echo "❌ FastAPI failed to start! Check logs."

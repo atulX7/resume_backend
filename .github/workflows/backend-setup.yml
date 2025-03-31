@@ -23,7 +23,7 @@ jobs:
             echo "🧼 Removing default NGINX site..."
             sudo rm -f /etc/nginx/sites-enabled/default
       
-            echo "🔧 Configuring frontend server block..."
+            echo "🔧 Configuring backend server block..."
             sudo bash -c 'cat <<EOL > /etc/nginx/sites-available/backend
             server {
               listen 80;
