@@ -42,6 +42,9 @@ jobs:
           # ✅ Step 3.3: Install Python & Dependencies
           echo "🐍 Ensuring Python & Virtual Environment"
           sudo apt update -y
+          sudo apt install -y software-properties-common
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update -y
           sudo apt install -y python3.11 python3.11-venv python3.11-dev
 
           # ✅ Step 3.4: Install Poetry
