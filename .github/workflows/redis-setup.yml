@@ -23,6 +23,12 @@ jobs:
 
           echo "🔄 Installing Redis..."
           sudo apt install -y redis-server
+          
+          echo "🔄 Updating Redis configuration for remote access..."
+          # Change the bind directive from '127.0.0.1 ::1' (or similar) to '0.0.0.0'
+          sudo sed -i 's/^bind .*/bind 0.0.0.0/' /etc/redis/redis.conf
+          # Set protected-mode to no to allow external connections
+          sudo sed -i 's/^protected-mode .*/protected-mode no/' /etc/redis/redis.conf
 
           echo "🔄 Enabling Redis to start on boot..."
           sudo systemctl enable redis-server
