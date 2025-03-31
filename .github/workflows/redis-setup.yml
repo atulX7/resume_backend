@@ -38,3 +38,11 @@ jobs:
 
           echo "🔄 Checking Redis status..."
           sudo systemctl status redis-server
+          
+          echo "🌐 Configuring firewall rules..."
+          sudo ufw allow 22/tcp  # Ensure SSH is not blocked
+          sudo ufw allow 6379/tcp
+          echo "y" | sudo ufw enable
+          echo "✅ Firewall configured."
+
+
