@@ -1,12 +1,13 @@
 [project]
-name = "resume-ai"
+name = "resume_backend"
 version = "0.1.0"
 description = ""
 authors = [
     {name = "neelam",email = "neelamyadav1@kpmg.com"}
 ]
+
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "python-dotenv (>=1.0.1,<2.0.0)",
     "fastapi (>=0.115.8,<0.116.0)",
@@ -31,7 +32,11 @@ dependencies = [
     "pymupdf (>=1.25.3,<2.0.0)",
     "python-docx (>=1.1.2,<2.0.0)",
     "google-generativeai (>=0.8.4,<0.9.0)",
-    "aiosmtplib (>=4.0.0,<5.0.0)"
+    "aiosmtplib (>=4.0.0,<5.0.0)",
+    "celery (>=5.4.0,<6.0.0)",
+    "redis (>=5.2.1,<6.0.0)",
+    "flower (>=2.0.1,<3.0.0)",
+    "eventlet (>=0.39.1,<0.40.0)",
 ]
 
 

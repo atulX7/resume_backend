@@ -1,4 +1,5 @@
 # /resume-builder-app
+import logging
 
 ## Step 1: Poetry Setup
 # Run the following commands to create the project
@@ -20,13 +21,18 @@ from app.database.connection import SessionLocal
 from app.database.seeder import initialize_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.logging import setup_logging
 
+setup_logging()  # Configure logging
+
+# Get a logger for the app
+logger = logging.getLogger("app")
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
-print("✅ Final ALLOW_ORIGINS:", settings.ALLOW_ORIGINS)
+logger.info(f"✅ Final ALLOW_ORIGINS: {settings.ALLOW_ORIGINS}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this for production
+    allow_origins=[origin.strip() for origin in settings.ALLOW_ORIGINS if origin],  # Change this for production
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers

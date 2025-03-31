@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import uuid
 import time
 
@@ -7,7 +8,7 @@ from fastapi import UploadFile
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, BotoCoreError
 from app.core.config import settings
-
+queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=settings.AWS_ACCESS_KEY,
@@ -147,6 +148,7 @@ def transcribe_audio(s3_url: str) -> str:
             # delete the original file if you don't need it anymore:
             s3_client.delete_object(Bucket=bucket_name, Key=f"{job_name}.json")
 
+            queue_logger.info(f"Got transcript: {transcript_text}")
             return transcript_text
 
         return "Transcription failed or incomplete."
@@ -155,14 +157,20 @@ def transcribe_audio(s3_url: str) -> str:
         raise Exception(f"AWS Transcribe error: {str(e)}")
 
 
-def upload_audio_to_s3(audio_file: UploadFile, user_id: str, session_id: str, question_id: str):
+def upload_audio_to_s3(
+    content: bytes,
+    user_id: str,
+    session_id: str,
+    question_id: str,
+    content_type: str = "audio/mpeg"
+) -> str:
     """Uploads candidate's response audio to S3 using structured key format."""
 
     bucket_name = settings.S3_BUCKET_NAME
     file_key = f"{user_id}/mock_interviews/{session_id}/audio_{question_id}.mp3"
 
     try:
-        s3_client.upload_fileobj(audio_file.file, bucket_name, file_key)
+        s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
         raise Exception("AWS credentials not found")

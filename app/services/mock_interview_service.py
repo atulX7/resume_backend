@@ -2,6 +2,7 @@ import json
 from typing import List
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
+import logging
 
 from app.core.config import settings
 from app.models.mock_interview import MockInterviewSession
@@ -21,6 +22,7 @@ from app.database.mock_interview import (
 from app.utils.resume_parser import extract_resume_text
 from app.utils.utils import generate_question_id, parse_ai_response
 
+queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
 
 def start_mock_interview(db: Session, user_id: str, job_title: str, job_description: str, resume_file: UploadFile):
     """Starts a new mock interview session by storing resume and initializing the interview."""
@@ -76,34 +78,41 @@ def start_mock_interview(db: Session, user_id: str, job_title: str, job_descript
     }
 
 
-
-async def process_mock_interview(db: Session, user_id: str, session_id: str, question_audio_map: dict[str, str], audio_files: List[UploadFile]):
+async def process_mock_interview(db: Session, user_id: str, session_id: str, question_audio_map: dict[str, str], audio_files: List[dict]):
     """Processes all answers, evaluates them, and generates final interview results."""
     session_status = "failed"
     try:
+        queue_logger.info(f"Started processing mock interview for user id: {user_id} for mock interview id: {session_id}")
         session = get_mock_interview_session(db, session_id)
         if not session:
-            print(f"❌ Session {session_id} not found")
+            queue_logger.info(f"❌ Session {session_id} not found")
             update_interview_status(db, session, session_status)
 
-        filename_to_audio = {file.filename: file for file in audio_files}
+        filename_to_audio = {file["filename"]: file for file in audio_files}
         interview_log = []
 
         # ✅ Step 1: Process Transcriptions
         for question in session.previous_questions:
             question_id = question["question_id"]
             audio_filename = question_audio_map.get(question_id)
+            queue_logger.info(f"Processing question id: {question_id} having audio filename: {audio_filename}")
 
             if not audio_filename or audio_filename not in filename_to_audio:
+                queue_logger.info(f"No audio found for question id: {question_id}")
                 interview_log.append(format_skipped_question(question))
                 continue
 
-            audio_file = filename_to_audio[audio_filename]
+            file_data = filename_to_audio[audio_filename]
+            content = file_data["content"]
+            content_type = file_data["content_type"]
             if settings.MOCK_DATA:
+                queue_logger.info("Returning mock data")
                 audio_s3_url = 'https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3'
                 transcription_text = "Scenario based questions in any technical interview are asked to assess the depth of your knowledge. So whenever you get a scenario based question, don't jump to the answer. Try to assess the situation. They are basically trying to differentiate you from other people. They are also trying to understand, do you really have production like uh experience in your resume. So they they want to throw a random scenario at you. Probably that has something happened in their area or that they have experienced themselves. They want to assess what options you will be performing, what activities you will be performing in such a scenario. So start before you start answering the question. Try to assess, try to understand what was the situation, what sort of services they use, what was the scenario. Get more details about the question, and then start framing your answer. That will help you score better in these kind of questions."
             else:
-                audio_s3_url = upload_audio_to_s3(audio_file, user_id, session_id, question_id)
+                queue_logger.info("Uploading to s3 bucket")
+                audio_s3_url = upload_audio_to_s3(content, user_id, session_id, question_id, content_type)
+                queue_logger.info("Transcribing audio")
                 transcription_text = transcribe_audio(audio_s3_url)
 
             interview_log.append({
@@ -163,8 +172,9 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
 
         # ✅ Step 5: Send email notification to user
         await send_interview_result_email(db, user_id, session, final_evaluation)
+        queue_logger.info(f"Completed processing mock interview for user id: {user_id} for mock interview id: {session_id}")
     except Exception as e:
-        print(f"❌ Error processing mock interview session {session_id}: {e}")
+        queue_logger.info(f"❌ Error processing mock interview session {session_id}: {e}")
         # ✅ Update session status to "failed"
         update_interview_status(db, session, session_status)
 

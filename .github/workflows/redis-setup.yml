@@ -1,0 +1,34 @@
+name: Deploy Redis to Ubuntu EC2
+
+on:
+  workflow_dispatch:  # Allows manual triggering of this workflow
+
+jobs:
+  deploy_redis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Redis on EC2
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.REDIS_EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🔄 Updating package index..."
+          sudo apt update -y
+
+          echo "🔄 Installing Redis..."
+          sudo apt install -y redis-server
+
+          echo "🔄 Enabling Redis to start on boot..."
+          sudo systemctl enable redis-server
+
+          echo "🔄 Starting Redis..."
+          sudo systemctl start redis-server
+
+          echo "🔄 Checking Redis status..."
+          sudo systemctl status redis-server

@@ -25,6 +25,8 @@ class Settings:
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
     FROM_EMAIL: str = os.getenv("FROM_EMAIL", SMTP_USERNAME)
 
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL")
+    CELERY_BACKEND_URL: str = os.getenv("CELERY_BACKEND_URL")
 
 
 settings = Settings()
