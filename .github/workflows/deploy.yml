@@ -62,6 +62,8 @@ jobs:
           # Create logs directory for centralized logging
           mkdir -p logs
           chmod 755 logs
+          chown -R $(whoami):$(whoami) logs
+          ls -ld logs
 
           # ✅ Step 3.6: Create .env File with GitHub Secrets
           echo "📌 Creating .env file"
