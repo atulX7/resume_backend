@@ -1,3 +1,5 @@
+import json
+
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
@@ -5,6 +7,7 @@ from app.core.config import settings
 from app.services.resume_service import handle_resume_upload
 from app.utils.ai_assistant import analyze_resume_with_ai
 from app.utils.aws_utils import generate_presigned_url
+from app.utils.utils import parse_ai_response
 
 
 def tailor_resume(db: Session, user_id: str, job_title: str, job_description: str, skills: str, user_resume: UploadFile):
@@ -72,6 +75,14 @@ def tailor_resume(db: Session, user_id: str, job_title: str, job_description: st
     else:
         # ✅ Call AI assistant to analyze resume
         ai_response = analyze_resume_with_ai(job_title, job_description, skills, user_resume)
+        try:
+            review_sugestions = parse_ai_response(ai_response)  # Convert AI response to a dictionary
+        except json.JSONDecodeError as e:
+            print(f"json load error: {str(e)}")
+            review_sugestions = {}  # Default empty dict if parsing fails
+        except Exception as e:
+            print(f"Exception in tailoring: {str(e)}")
+            review_sugestions = {}
 
         # ✅ Upload the AI-analyzed resume to S3 (optional, for user downloads)
         resume = handle_resume_upload(db, user_id, user_resume, job_title)
@@ -79,5 +90,5 @@ def tailor_resume(db: Session, user_id: str, job_title: str, job_description: st
 
     return {
         "resume_url": generate_presigned_url(s3_url),
-        "review_suggestions": ai_response
+        "review_suggestions": review_sugestions
     }
