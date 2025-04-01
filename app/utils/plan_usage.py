@@ -9,5 +9,5 @@ def check_feature_access(db: Session, user_id: int, feature_key: str):
         print(f"Usage limit reached for '{feature_key}' for user: {user_id}.")
         raise HTTPException(
             status_code=403,
-            message="Usage limit reached. Please upgrade your plan."
+            detail="Usage limit reached. Please upgrade your plan."
         )
