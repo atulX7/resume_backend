@@ -169,7 +169,7 @@ def upload_audio_to_s3(
     """Uploads candidate's response audio to S3 using structured key format."""
 
     bucket_name = settings.S3_BUCKET_NAME
-    file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}.mp3"
+    file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}"
 
     try:
         s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})

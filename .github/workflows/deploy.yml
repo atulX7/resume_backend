@@ -126,6 +126,8 @@ jobs:
           
           # Start Celery Worker with eventlet pool and centralized logging
           echo "🚀 Starting Celery Worker..."
+#          ps aux | grep "celery -A app.celery_app.celery_app worker"
+#          kill -9 <PID>
           nohup poetry run celery -A app.celery_app.celery_app worker --pool=eventlet --loglevel=info -Q mock_interview --logfile=logs/celery.log > logs/celery.out 2>&1 < /dev/null &
           disown
           echo "✅ Celery Worker started successfully."
