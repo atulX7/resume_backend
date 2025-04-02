@@ -30,6 +30,7 @@ logger = logging.getLogger("app")
 
 app = FastAPI(title="AI Resume Builder API", version="1.0")
 logger.info(f"✅ Final ALLOW_ORIGINS: {settings.ALLOW_ORIGINS}")
+logger.info(f"✅ Final MOCK Data: {settings.MOCK_DATA}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in settings.ALLOW_ORIGINS if origin],  # Change this for production

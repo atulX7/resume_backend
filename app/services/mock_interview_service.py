@@ -83,6 +83,7 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
     session_status = "failed"
     try:
         queue_logger.info(f"Started processing mock interview for user id: {user_id} for mock interview id: {session_id}")
+        queue_logger.info(f"Mock data: {settings.MOCK_DATA}")
         session = get_mock_interview_session(db, session_id)
         if not session:
             queue_logger.info(f"❌ Session {session_id} not found")
@@ -164,6 +165,7 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
             ai_response_json = get_openai_interview_evaluation(session.job_title, interview_log)
 
         # ✅ Step 3: Process AI response
+        queue_logger.info(f"AI response: {ai_response_json}")
         evaluation_results, final_evaluation = process_ai_response(ai_response_json, interview_log)
 
         # ✅ Step 4: Save interview evaluation in the database
