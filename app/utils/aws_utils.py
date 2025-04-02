@@ -161,13 +161,13 @@ def upload_audio_to_s3(
     content: bytes,
     user_id: str,
     session_id: str,
-    question_id: str,
+    filename: str,
     content_type: str = "audio/mpeg"
 ) -> str:
     """Uploads candidate's response audio to S3 using structured key format."""
 
     bucket_name = settings.S3_BUCKET_NAME
-    file_key = f"{user_id}/mock_interviews/{session_id}/audio_{question_id}.mp3"
+    file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}.mp3"
 
     try:
         s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})
@@ -176,3 +176,4 @@ def upload_audio_to_s3(
         raise Exception("AWS credentials not found")
     except Exception as e:
         raise Exception(f"Error uploading audio to S3: {str(e)}")
+

@@ -78,7 +78,25 @@ def start_mock_interview(db: Session, user_id: str, job_title: str, job_descript
     }
 
 
-async def process_mock_interview(db: Session, user_id: str, session_id: str, question_audio_map: dict[str, str], audio_files: List[dict]):
+async def get_audio_file_map(user_id, session_id, audio_files):
+    audio_file_map = {}
+    for file in audio_files:
+        if settings.MOCK_DATA:
+            s3_url = 'https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3'
+        else:
+            content = await file.read()
+            s3_url = upload_audio_to_s3(
+                content,
+                user_id=user_id,
+                session_id=session_id,
+                filename=file.filename,
+                content_type=file.content_type
+            )
+        audio_file_map[file.filename] = s3_url
+    return audio_file_map
+
+
+async def process_mock_interview(db: Session, user_id: str, session_id: str, question_audio_map: dict[str, str], audio_file_map: dict):
     """Processes all answers, evaluates them, and generates final interview results."""
     session_status = "failed"
     try:
@@ -89,7 +107,6 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
             queue_logger.info(f"❌ Session {session_id} not found")
             update_interview_status(db, session, session_status)
 
-        filename_to_audio = {file["filename"]: file for file in audio_files}
         interview_log = []
 
         # ✅ Step 1: Process Transcriptions
@@ -98,21 +115,17 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
             audio_filename = question_audio_map.get(question_id)
             queue_logger.info(f"Processing question id: {question_id} having audio filename: {audio_filename}")
 
-            if not audio_filename or audio_filename not in filename_to_audio:
+            if not audio_filename or audio_filename not in audio_file_map:
                 queue_logger.info(f"No audio found for question id: {question_id}")
                 interview_log.append(format_skipped_question(question))
                 continue
 
-            file_data = filename_to_audio[audio_filename]
-            content = file_data["content"]
-            content_type = file_data["content_type"]
+            audio_s3_url = audio_file_map[audio_filename]
             if settings.MOCK_DATA:
                 queue_logger.info("Returning mock data")
-                audio_s3_url = 'https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3'
                 transcription_text = "Scenario based questions in any technical interview are asked to assess the depth of your knowledge. So whenever you get a scenario based question, don't jump to the answer. Try to assess the situation. They are basically trying to differentiate you from other people. They are also trying to understand, do you really have production like uh experience in your resume. So they they want to throw a random scenario at you. Probably that has something happened in their area or that they have experienced themselves. They want to assess what options you will be performing, what activities you will be performing in such a scenario. So start before you start answering the question. Try to assess, try to understand what was the situation, what sort of services they use, what was the scenario. Get more details about the question, and then start framing your answer. That will help you score better in these kind of questions."
             else:
                 queue_logger.info("Uploading to s3 bucket")
-                audio_s3_url = upload_audio_to_s3(content, user_id, session_id, question_id, content_type)
                 queue_logger.info("Transcribing audio")
                 transcription_text = transcribe_audio(audio_s3_url)
 
