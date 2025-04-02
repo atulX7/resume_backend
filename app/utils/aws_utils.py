@@ -120,6 +120,8 @@ def transcribe_audio(s3_url: str) -> str:
         job_name = f"transcription-{int(time.time())}"  # Unique job name
         media_format = s3_url.split(".")[-1]  # Extract file format (mp3, wav, etc.)
         bucket_name = settings.S3_BUCKET_NAME
+        queue_logger.info(f"Fetching audio from bucket: {bucket_name} in region: {settings.AWS_REGION_NAME} to create job: {job_name}")
+        queue_logger.info(f"Media format: {media_format} from s3 url: {s3_url}")
 
         # Start transcription job
         transcribe_client.start_transcription_job(
