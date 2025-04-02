@@ -13,6 +13,7 @@ class Settings:
     # AWS Credentials (Ensure these are set in .env)
     AWS_ACCESS_KEY: str = os.getenv("AWS_ACCESS_KEY")
     AWS_SECRET_KEY: str = os.getenv("AWS_SECRET_KEY")
+    AWS_REGION_NAME: str = os.getenv("AWS_REGION_NAME")
     S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "")
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")

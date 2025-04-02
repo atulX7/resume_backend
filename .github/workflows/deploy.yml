@@ -89,6 +89,7 @@ jobs:
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+          AWS_REGION_NAME=${{ vars.AWS_REGION_NAME }}
           S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           SMTP_SERVER=${{ vars.SMTP_SERVER }}
