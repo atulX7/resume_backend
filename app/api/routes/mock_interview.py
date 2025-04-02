@@ -44,7 +44,7 @@ async def process_interview(
     """
     check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
     # Upload files to S3 and collect S3 URLs
-    audio_file_map = get_audio_file_map(current_user.id, session_id, audio_files)
+    audio_file_map = await get_audio_file_map(current_user.id, session_id, audio_files)
 
     # Instead of calling process_mock_interview directly, queue the task.
     # We pass question_audio_map as-is (a JSON string) so it is serializable.
