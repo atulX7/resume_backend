@@ -11,7 +11,7 @@ from app.utils.mock_interview_utils import format_skipped_question, get_openai_i
     process_ai_response, send_interview_result_email, format_final_response
 from app.utils.openai_client import call_openai
 from app.utils.prompts import INTERVIEW_QUESTION_PROMPT
-from app.utils.aws_utils import upload_resume_to_s3, transcribe_audio, upload_audio_to_s3, \
+from app.utils.aws_utils import upload_resume_to_s3, transcribe_audio, upload_audio_to_s3_sync, \
     generate_presigned_url
 from app.database.mock_interview import (
     create_mock_interview_session,
@@ -21,6 +21,16 @@ from app.database.mock_interview import (
 
 from app.utils.resume_parser import extract_resume_text
 from app.utils.utils import generate_question_id, parse_ai_response
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=10)  # Match max_concurrency
+
+async def upload_audio_to_s3_async(*args, **kwargs):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, upload_audio_to_s3_sync, *args, **kwargs)
+
+
 
 queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
 
@@ -79,21 +89,20 @@ def start_mock_interview(db: Session, user_id: str, job_title: str, job_descript
 
 
 async def get_audio_file_map(user_id, session_id, audio_files):
-    audio_file_map = {}
+    if settings.MOCK_DATA:
+        mock_url = 'https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3'
+        return {file.filename: mock_url for file in audio_files}
+
+    upload_tasks = []
     for file in audio_files:
-        if settings.MOCK_DATA:
-            s3_url = 'https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3'
-        else:
-            content = await file.read()
-            s3_url = upload_audio_to_s3(
-                content,
-                user_id=user_id,
-                session_id=session_id,
-                filename=file.filename,
-                content_type=file.content_type
-            )
-        audio_file_map[file.filename] = s3_url
-    return audio_file_map
+        content = await file.read()
+        upload_tasks.append(upload_audio_to_s3_async(
+            content, user_id, session_id, file.filename, file.content_type
+        ))
+
+    s3_urls = await asyncio.gather(*upload_tasks)
+
+    return {file.filename: url for file, url in zip(audio_files, s3_urls)}
 
 
 async def process_mock_interview(db: Session, user_id: str, session_id: str, question_audio_map: dict[str, str], audio_file_map: dict):
@@ -126,7 +135,6 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
                 queue_logger.info("Returning mock data")
                 transcription_text = "Scenario based questions in any technical interview are asked to assess the depth of your knowledge. So whenever you get a scenario based question, don't jump to the answer. Try to assess the situation. They are basically trying to differentiate you from other people. They are also trying to understand, do you really have production like uh experience in your resume. So they they want to throw a random scenario at you. Probably that has something happened in their area or that they have experienced themselves. They want to assess what options you will be performing, what activities you will be performing in such a scenario. So start before you start answering the question. Try to assess, try to understand what was the situation, what sort of services they use, what was the scenario. Get more details about the question, and then start framing your answer. That will help you score better in these kind of questions."
             else:
-                queue_logger.info("Uploading to s3 bucket")
                 queue_logger.info("Transcribing audio")
                 transcription_text = transcribe_audio(audio_s3_url)
 

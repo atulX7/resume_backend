@@ -8,7 +8,19 @@ from fastapi import UploadFile
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, BotoCoreError
 from app.core.config import settings
+
 queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
+
+import io
+from boto3.s3.transfer import TransferConfig
+from botocore.exceptions import NoCredentialsError
+
+transfer_config = TransferConfig(
+    multipart_threshold=5 * 1024 * 1024,  # Use multipart if file > 5MB
+    max_concurrency=10,
+    use_threads=True
+)
+
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=settings.AWS_ACCESS_KEY,
@@ -149,6 +161,8 @@ def transcribe_audio(s3_url: str) -> str:
 
             # delete the original file if you don't need it anymore:
             s3_client.delete_object(Bucket=bucket_name, Key=f"{job_name}.json")
+            # ✅ Delete the transcription job from AWS Transcribe
+            transcribe_client.delete_transcription_job(TranscriptionJobName=job_name)
 
             queue_logger.info(f"Got transcript: {transcript_text}")
             return transcript_text
@@ -159,23 +173,47 @@ def transcribe_audio(s3_url: str) -> str:
         raise Exception(f"AWS Transcribe error: {str(e)}")
 
 
-def upload_audio_to_s3(
+# def upload_audio_to_s3(
+#     content: bytes,
+#     user_id: str,
+#     session_id: str,
+#     filename: str,
+#     content_type: str = "audio/mpeg"
+# ) -> str:
+#     """Uploads candidate's response audio to S3 using structured key format."""
+#
+#     bucket_name = settings.S3_BUCKET_NAME
+#     file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}"
+#
+#     try:
+#         s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})
+#         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
+#     except NoCredentialsError:
+#         raise Exception("AWS credentials not found")
+#     except Exception as e:
+#         raise Exception(f"Error uploading audio to S3: {str(e)}")
+
+
+def upload_audio_to_s3_sync(
     content: bytes,
     user_id: str,
     session_id: str,
     filename: str,
     content_type: str = "audio/mpeg"
 ) -> str:
-    """Uploads candidate's response audio to S3 using structured key format."""
-
     bucket_name = settings.S3_BUCKET_NAME
     file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}"
 
     try:
-        s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})
+        s3_client.upload_fileobj(
+            io.BytesIO(content),
+            bucket_name,
+            file_key,
+            ExtraArgs={"ContentType": content_type},
+            Config=transfer_config
+        )
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
         raise Exception("AWS credentials not found")
     except Exception as e:
         raise Exception(f"Error uploading audio to S3: {str(e)}")
-
