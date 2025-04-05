@@ -12,7 +12,6 @@ from app.schemas.mock_interview import (
     MockInterviewQuestionResponse, MockInterviewSessionSummary,
     MockInterviewSessionDetails, ProcessingStartedResponse
 )
-from app.utils.aws_utils import upload_audio_to_s3
 from app.utils.constants import FEATURE_MOCK_INTERVIEW
 from app.utils.plan_usage import check_feature_access
 
