@@ -109,12 +109,17 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
     """Processes all answers, evaluates them, and generates final interview results."""
     session_status = "failed"
     try:
+        if not session_id:
+            queue_logger.info("❌ Missing session_id")
+            return
+
         queue_logger.info(f"Started processing mock interview for user id: {user_id} for mock interview id: {session_id}")
         queue_logger.info(f"Mock data: {settings.MOCK_DATA}")
         session = get_mock_interview_session(db, session_id)
         if not session:
             queue_logger.info(f"❌ Session {session_id} not found")
             update_interview_status(db, session, session_status)
+            return
 
         interview_log = []
 
