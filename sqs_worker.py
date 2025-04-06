@@ -45,7 +45,7 @@ def poll_sqs():
 
                     queue_logger.info(f"👤 User ID: {body.get('user_id')}")
                     queue_logger.info(f"🎯 Session ID: {body.get('session_id')}")
-                    queue_logger.debug(f"📦 Full message body: {body}")
+                    queue_logger.info(f"📦 Full message body: {body}")
 
                     db = SessionLocal()
 

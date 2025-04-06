@@ -1,3 +1,4 @@
+import ast
 import json
 from typing import List
 from sqlalchemy.orm import Session
@@ -109,6 +110,8 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
     """Processes all answers, evaluates them, and generates final interview results."""
     session_status = "failed"
     try:
+        queue_logger.info(f"type question_audio_map: {type(question_audio_map)} value: {question_audio_map}")
+        queue_logger.info(f"type audio_file_map: {type(audio_file_map)} value: {audio_file_map}")
         if not session_id:
             queue_logger.info("❌ Missing session_id")
             return
@@ -123,6 +126,9 @@ async def process_mock_interview(db: Session, user_id: str, session_id: str, que
 
         interview_log = []
 
+        queue_logger.info(f"Session {session_id} found")
+        question_audio_map = ast.literal_eval(question_audio_map)
+        audio_file_map = ast.literal_eval(audio_file_map)
         # ✅ Step 1: Process Transcriptions
         for question in session.previous_questions:
             question_id = question["question_id"]
