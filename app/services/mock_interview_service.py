@@ -32,7 +32,7 @@ async def upload_audio_to_s3_async(*args, **kwargs):
 
 
 
-queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
+queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
 
 def start_mock_interview(db: Session, user_id: str, job_title: str, job_description: str, resume_file: UploadFile):
     """Starts a new mock interview session by storing resume and initializing the interview."""

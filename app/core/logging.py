@@ -17,9 +17,9 @@ LOGGING_CONFIG = {
             "backupCount": 5,
             "formatter": "standard",
         },
-        "celery_file_handler": {
+        "sqs_file_handler": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": "logs/celery.log",
+            "filename": "logs/sqs.log",
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
             "formatter": "standard",
@@ -36,9 +36,9 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "propagate": False,
         },
-        # Logger for Celery tasks (or worker-specific logs)
-        "celery": {
-            "handlers": ["celery_file_handler", "console"],
+        # Logger for sqs tasks (or worker-specific logs)
+        "sqs": {
+            "handlers": ["sqs_file_handler", "console"],
             "level": "INFO",
             "propagate": False,
         },

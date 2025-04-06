@@ -124,6 +124,12 @@ jobs:
           disown
           echo "✅ FastAPI Application started successfully."
           
+          # start sqs worker after creating /etc/systemd/system/sqs_worker.service
+          sudo systemctl daemon-reexec
+          sudo systemctl enable sqs_worker
+          sudo systemctl start sqs_worker
+          sudo systemctl status sqs_worker
+
           # Start Celery Worker with eventlet pool and centralized logging
           echo "🚀 Starting Celery Worker..."
 #          ps aux | grep "celery -A app.celery_app.celery_app worker"
@@ -143,7 +149,6 @@ jobs:
           sudo ufw allow 80/tcp   # Ensure NGINX is accessible
           sudo ufw allow 443/tcp # Ensure ssl is accessible
           sudo ufw allow 8000/tcp 
-          sudo ufw allow 5555/tcp 
           echo "y" | sudo ufw enable
           echo "✅ Firewall configured."
           sleep 5

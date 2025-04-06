@@ -1,15 +1,3 @@
-# JD_TAILORING_PROMPT = """
-# You are a career advisor. Improve the following resume based on this Job Description:
-#
-# Job Description:
-# {job_description}
-#
-# Current Resume:
-# {user_resume}
-#
-# Ensure the resume aligns with the JD, highlighting relevant skills.
-# """
-
 JD_TAILORING_PROMPT = """
     You are an expert resume reviewer over a decade of experience. Your task is to analyze the attached resume file
     and suggest inline improvements based on the following job details:
@@ -68,49 +56,41 @@ RESUME_SCORING_PROMPT = """
     1. **Layout & Searchability** – Is the resume well-structured, easy to navigate, and visually appealing?
     2. **ATS Readability** – Can an Applicant Tracking System (ATS) effectively parse this resume?
     3. **Impact & Effectiveness** – Does the resume emphasize achievements rather than responsibilities?
-    4. **Keyword Optimization** – Does it align with the job description keywords?
-    5. **Quantifiable Achievements** – Are there measurable results (e.g., "Increased revenue by 25%")?
-    6. **Action Verbs** – Does it use strong, impactful verbs like "Spearheaded" or "Optimized"?
-    7. **Readability & Clarity** – Is it well-written, free of jargon, and easy to understand?
-    8. **Personal Branding** – Does it have a strong professional summary showcasing unique skills?
-    9. **Customization** – Is it tailored to the specific job role?
-    10. **Grammar & Spelling** – Are there any errors in spelling, punctuation, or grammar?
-    11. **Contact Information** – Is it correctly formatted and complete?
-    12. **Section Completeness** – Does it include Experience, Education, Skills, etc.?
-    13. **Visual Appeal** – Are font choice, whitespace, and formatting professional?
-    14. **Cultural Fit** – Does it align with industry norms and company values?
-    15. **Social Proof** – Does it highlight certifications, awards, or endorsements?
-    16. **Career Progression** – Does it show logical career growth and promotions?
-    17. **Emotional & Persuasive Appeal** – Is it engaging, compelling, and well-crafted?
-    18. **Conciseness** – Is it to-the-point, avoiding fluff and excessive length?
-    19. **Bullet Point Clarity** – Are bullet points clear, direct, and meaningful?
-    20. **Industry-Specific Keywords** – Does it contain relevant terminology for the role?
-    21. **Call-to-Action** – Does it end with a compelling closing statement?
+    4. **Quantifiable Achievements** – Are there measurable results (e.g., "Increased revenue by 25%")?
+    6. **Readability & Clarity** – Is it well-written, free of jargon, and easy to understand?
+    7. **Personal Branding** – Does it have a strong professional summary showcasing unique skills?
+    8. **Grammar & Spelling** – Are there any errors in spelling, punctuation, or grammar?
+    9. **Contact Information** – Is it correctly formatted and complete?
+    10. **Section Completeness** – Does it include Experience, Education, Skills, etc.?
+    11. **Visual Appeal** – Are font choice, whitespace, and formatting professional?
+    12. **Cultural Fit** – Does it align with industry norms and company values?
+    13. **Career Progression** – Does it show logical career growth and promotions?
+    14. **Emotional & Persuasive Appeal** – Is it engaging, compelling, and well-crafted?
+    15. **Conciseness** – Is it to-the-point, avoiding fluff and excessive length?
+    16. **Bullet Point Clarity** – Are bullet points clear, direct, and meaningful?
+    17. **Industry-Specific Keywords** – Does it contain relevant terminology for the role?
+    18. **Call-to-Action** – Does it end with a compelling closing statement?
 
     ✅ **Scoring Format**
     Return the response in the following JSON format:
     {{
-        "layout": <score>,
-        "ats_readability": <score>,
-        "impact": <score>,
-        "keyword_optimization": <score>,
-        "quantifiable_achievements": <score>,
-        "action_verbs": <score>,
-        "readability": <score>,
-        "personal_branding": <score>,
-        "customization": <score>,
-        "grammar_spelling": <score>,
-        "contact_info": <score>,
-        "section_completeness": <score>,
-        "visual_appeal": <score>,
-        "cultural_fit": <score>,
-        "social_proof": <score>,
-        "career_progression": <score>,
-        "emotional_appeal": <score>,
-        "conciseness": <score>,
-        "bullet_point_clarity": <score>,
-        "industry_keywords": <score>,
-        "call_to_action": <score>
+        "Layout": <score>,
+        "ATS_Readability": <score>,
+        "Impact": <score>,
+        "Quantifiable_Achievements": <score>,
+        "Readability": <score>,
+        "Personal_Branding": <score>,
+        "Grammar_Spelling": <score>,
+        "Contact_Info": <score>,
+        "Section_Completeness": <score>,
+        "Visual_Appeal": <score>,
+        "Cultural_Fit": <score>,
+        "Career_Progression": <score>,
+        "Emotional_Appeal": <score>,
+        "Conciseness": <score>,
+        "Bullet_Point_Clarity": <score>,
+        "Industry_Keywords": <score>,
+        "Call_To_Action": <score>
     }}
 
     🔹 **Resume to Evaluate**

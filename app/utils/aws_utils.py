@@ -9,7 +9,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, BotoCoreError
 from app.core.config import settings
 
-queue_logger = logging.getLogger("celery")  # This logger writes to logs/celery.log
+queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
 
 import io
 from boto3.s3.transfer import TransferConfig
@@ -33,6 +33,14 @@ transcribe_client = boto3.client(
     aws_access_key_id=settings.AWS_ACCESS_KEY,
     aws_secret_access_key=settings.AWS_SECRET_KEY,
     region_name=settings.AWS_REGION_NAME,
+)
+
+
+sqs_client = boto3.client(
+    'sqs',
+    aws_access_key_id=settings.AWS_ACCESS_KEY,
+    aws_secret_access_key=settings.AWS_SECRET_KEY,
+    region_name=settings.AWS_REGION_NAME
 )
 
 def upload_resume_to_s3(file: UploadFile, user_id: str):
@@ -173,25 +181,14 @@ def transcribe_audio(s3_url: str) -> str:
         raise Exception(f"AWS Transcribe error: {str(e)}")
 
 
-# def upload_audio_to_s3(
-#     content: bytes,
-#     user_id: str,
-#     session_id: str,
-#     filename: str,
-#     content_type: str = "audio/mpeg"
-# ) -> str:
-#     """Uploads candidate's response audio to S3 using structured key format."""
-#
-#     bucket_name = settings.S3_BUCKET_NAME
-#     file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}"
-#
-#     try:
-#         s3_client.upload_fileobj(io.BytesIO(content), bucket_name, file_key, ExtraArgs={"ContentType": content_type})
-#         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
-#     except NoCredentialsError:
-#         raise Exception("AWS credentials not found")
-#     except Exception as e:
-#         raise Exception(f"Error uploading audio to S3: {str(e)}")
+
+def send_to_mock_interview_queue(payload: dict):
+    response = sqs_client.send_message(
+        QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL,
+        MessageBody=json.dumps(payload)
+    )
+    queue_logger.info(f"sending processing task to sqs. got response: {response}")
+    return response
 
 
 def upload_audio_to_s3_sync(

@@ -1,0 +1,14 @@
+# /etc/systemd/system/sqs_worker.service
+[Unit]
+Description=ResumeAI SQS Worker
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/fastapi_app
+ExecStart=/home/ubuntu/.local/bin/poetry run python sqs_worker.py
+Restart=always
+Environment="PATH=/home/ubuntu/.local/bin:/usr/bin"
+
+[Install]
+WantedBy=multi-user.target

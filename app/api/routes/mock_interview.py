@@ -47,13 +47,14 @@ async def process_interview(
 
     # Instead of calling process_mock_interview directly, queue the task.
     # We pass question_audio_map as-is (a JSON string) so it is serializable.
-    from app.tasks.mock_interview import process_mock_interview_task  # import here to avoid circular imports
-    process_mock_interview_task.delay(
-        current_user.id,
-        session_id,
-        question_audio_map,  # already a JSON string from the form
-        audio_file_map
-    )
+    from app.utils.aws_utils import send_to_mock_interview_queue
+
+    send_to_mock_interview_queue({
+        "user_id": current_user.id,
+        "session_id": session_id,
+        "question_audio_map": question_audio_map,
+        "audio_file_map": audio_file_map
+    })
 
     return {
         "status": "processing",
