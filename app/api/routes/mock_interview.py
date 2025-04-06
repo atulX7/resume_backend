@@ -1,3 +1,4 @@
+import ast
 import json
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form
@@ -52,7 +53,7 @@ async def process_interview(
     send_to_mock_interview_queue({
         "user_id": current_user.id,
         "session_id": session_id,
-        "question_audio_map": question_audio_map,
+        "question_audio_map": ast.literal_eval(question_audio_map),
         "audio_file_map": audio_file_map
     })
 
