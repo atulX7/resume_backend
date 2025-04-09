@@ -77,15 +77,3 @@ async def send_interview_result_email(db: Session, user_id: str, session, final_
 
     await send_email(user.email, email_subject, email_body)
 
-
-def format_final_response(final_evaluation, evaluation_results):
-    """Formats the API response with structured evaluation data."""
-    return {
-        'overall_score': final_evaluation.get("overall_score", 0.0),
-        'duration_in_minutes': final_evaluation.get("duration_in_minutes", 0.0),
-        'key_strengths': final_evaluation.get("key_strengths", []),
-        'areas_for_growth': final_evaluation.get("areas_for_growth", []),
-        'skill_assessment': final_evaluation.get("skill_assessment", {}),
-        'evaluation_results': evaluation_results
-    }
-

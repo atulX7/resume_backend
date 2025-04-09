@@ -3,6 +3,7 @@ import json
 import logging
 import uuid
 import time
+from urllib.parse import urlparse
 
 from fastapi import UploadFile
 import boto3
@@ -43,13 +44,17 @@ sqs_client = boto3.client(
     region_name=settings.AWS_REGION_NAME
 )
 
-def upload_resume_to_s3(file: UploadFile, user_id: str):
+def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
     """Uploads a resume file to the S3 bucket."""
     file_extension = file.filename.split(".")[-1].lower()
     resume_id = str(uuid.uuid4())
-    s3_path = f"{user_id}/resume_{resume_id}.{file_extension}"
+    if session_id:
+        s3_path = f"{user_id}/mock_interviews/{session_id}/data/resume.{file_extension}"
+    else:
+        s3_path = f"{user_id}/resume_{resume_id}.{file_extension}"
 
     try:
+        file.file.seek(0)  # ✅ Reset pointer to start
         s3_client.upload_fileobj(file.file, settings.S3_BUCKET_NAME, s3_path, ExtraArgs={"ContentType": file.content_type})
         return f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/{s3_path}"
     except NoCredentialsError:
@@ -181,7 +186,6 @@ def transcribe_audio(s3_url: str) -> str:
         raise Exception(f"AWS Transcribe error: {str(e)}")
 
 
-
 def send_to_mock_interview_queue(payload: dict):
     response = sqs_client.send_message(
         QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL,
@@ -199,7 +203,7 @@ def upload_audio_to_s3_sync(
     content_type: str = "audio/mpeg"
 ) -> str:
     bucket_name = settings.S3_BUCKET_NAME
-    file_key = f"{user_id}/mock_interviews/{session_id}/audio_{filename}"
+    file_key = f"{user_id}/mock_interviews/{session_id}/audio/audio_{filename}"
 
     try:
         s3_client.upload_fileobj(
@@ -214,3 +218,53 @@ def upload_audio_to_s3_sync(
         raise Exception("AWS credentials not found")
     except Exception as e:
         raise Exception(f"Error uploading audio to S3: {str(e)}")
+
+
+def upload_mock_interview_data(
+    user_id: str,
+    session_id: str,
+    filename: str,
+    data: dict | list
+) -> str:
+    bucket_name = settings.S3_BUCKET_NAME
+    file_key = f"{user_id}/mock_interviews/{session_id}/data/{filename}"
+    try:
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=json.dumps(data), ContentType='application/json')
+        return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
+    except NoCredentialsError:
+        raise Exception("AWS credentials not found")
+    except Exception as e:
+        raise Exception(f"Error uploading json to S3: {str(e)}")
+
+
+def fetch_mock_interview_data(s3_url: str) -> dict | list:
+    """
+    Downloads and parses a JSON object from an S3 URL.
+
+    Args:
+        s3_url (str): Full S3 URL (e.g., https://bucket-name.s3.amazonaws.com/path/to/file.json)
+
+    Returns:
+        dict | list: Parsed JSON content.
+    """
+    bucket_name = settings.S3_BUCKET_NAME
+    try:
+        if not s3_url:
+            return ""
+        # Parse the S3 URL
+        parsed = urlparse(s3_url)
+        file_key = parsed.path.lstrip("/")
+
+        # ✅ Check if object exists
+        try:
+            s3_client.head_object(Bucket=bucket_name, Key=file_key)
+        except ClientError as e:
+            return ""
+
+        obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+        content = obj["Body"].read().decode("utf-8")
+        return json.loads(content)
+    except NoCredentialsError:
+        raise Exception("AWS credentials not found")
+    except Exception as e:
+        raise Exception(f"Error fetching JSON from S3: {str(e)}")
