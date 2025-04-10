@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 import requests
@@ -29,6 +31,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # ✅ Check if login is older than 24 hours
+        if user.last_login_at and (datetime.now(timezone.utc) - user.last_login_at) > timedelta(hours=24):
+            raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
+
         return user
-    except Exception:
+    except Exception as e:
+        print(f"Failed to get current user: {str(e)}")
         raise HTTPException(status_code=401, detail="Token validation failed")

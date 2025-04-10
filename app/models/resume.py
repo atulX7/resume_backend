@@ -11,4 +11,4 @@ class Resume(Base):
     title = Column(String, nullable=False)
     s3_url = Column(String, nullable=False)  # S3 Storage Path
     resume_data = Column(JSONB, nullable=True, default={})  # Stores structured resume details (name, skills, etc.)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

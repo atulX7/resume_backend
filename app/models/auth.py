@@ -22,7 +22,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     image = Column(String, nullable=True)
     role_id = Column(String, ForeignKey("roles.id"), nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     role = relationship("Role")
     user_plan = relationship("UserPlanUsage", back_populates="user", uselist=False)
@@ -30,23 +31,6 @@ class User(Base):
     def has_premium_access(self):
         """Check if user has an active premium plan."""
         return self.user_plan and self.user_plan.plan.is_premium and (
-                    self.user_plan.expiry_date is None or self.user_plan.expiry_date > datetime.now(datetime.UTC))
+                    self.user_plan.expiry_date is None or self.user_plan.expiry_date > datetime.now(timezone.utc))
 
 
-class Account(Base):
-    """Stores linked accounts for users"""
-    __tablename__ = "accounts"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    provider = Column(String, nullable=False)  # "google", "linkedin"
-    provider_account_id = Column(String, nullable=False)
-
-
-class JWTBlacklist(Base):
-    """Blacklist JWT Tokens (for logout)"""
-    __tablename__ = "jwt_blacklist"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    token = Column(String, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

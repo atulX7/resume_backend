@@ -22,7 +22,7 @@ class UserPlanUsage(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
-    expiry_date = Column(DateTime, nullable=True)
+    expiry_date = Column(DateTime(timezone=True), nullable=True)
     usage_counts = Column(MutableDict.as_mutable(JSONB), default={})
 
     user = relationship("User", back_populates="user_plan")

@@ -13,7 +13,7 @@ def sync_user_service(db: Session, access_token: str):
     user_info = fetch_google_user(access_token)
 
     # ✅ Sync user in DB
-    user = get_user_by_email(db, user_info["email"])
+    user = get_user_by_email(db, user_info["email"], update_last_login=True)
     if not user:
         user = create_user(db, user_info["name"], user_info["email"], user_info.get("picture"))
         set_free_plan(db, user.id)

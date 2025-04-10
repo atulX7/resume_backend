@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.plan import Plan, UserPlanUsage
 from sqlalchemy.exc import NoResultFound
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.utils.constants import FREE_PLAN_CODE
 
@@ -42,7 +42,7 @@ def reset_usage_if_expired(db: Session, user_id: int):
     user_plan = get_user_plan(db, user_id)
     if not user_plan:
         return
-    if user_plan.expiry_date and user_plan.expiry_date < datetime.utcnow():
+    if user_plan.expiry_date and user_plan.expiry_date < datetime.now(timezone.utc):
         db.delete(user_plan)
         db.commit()
 
@@ -54,7 +54,7 @@ def set_user_plan(db: Session, user_id: int, plan_code: str):
 
     expiry = None
     if plan.duration_days > 0:
-        expiry = datetime.utcnow() + timedelta(days=plan.duration_days)
+        expiry = datetime.now(timezone.utc) + timedelta(days=plan.duration_days)
 
     user_plan = db.query(UserPlanUsage).filter_by(user_id=user_id).first()
     if user_plan:
