@@ -23,7 +23,7 @@ def generate_cover_letter(db: Session, request: CoverLetterRequest):
         job_title=request.job_title,
         company_name=request.company_name,
         job_description=request.job_description or "No detailed JD provided.",
-        user_resume=request.user_resume or "No resume provided."
+        user_resume=request.user_resume or "No resume provided.",
     )
 
     generated_cover_letter = call_openai({"prompt": prompt})

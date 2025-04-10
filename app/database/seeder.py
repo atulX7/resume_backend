@@ -24,7 +24,7 @@ default_plans = [
         "feature_limits": {
             "resume_eval": -1,
             "resume_tailor": -1,
-            "mock_interview": -1
+            "mock_interview": -1,
         },
     },
     {
@@ -36,9 +36,9 @@ default_plans = [
         "feature_limits": {
             "resume_eval": -1,
             "resume_tailor": -1,
-            "mock_interview": -1
+            "mock_interview": -1,
         },
-    }
+    },
 ]
 
 
@@ -65,6 +65,7 @@ def seed_roles(db: Session):
             db.add(Role(name=role_name))
 
     db.commit()
+
 
 def initialize_db(db: Session):
     seed_roles(db)

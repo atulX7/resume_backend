@@ -76,4 +76,3 @@ async def send_interview_result_email(db: Session, user_id: str, session, final_
     """
 
     await send_email(user.email, email_subject, email_body)
-

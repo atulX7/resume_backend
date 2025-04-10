@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Settings:
     PROJECT_NAME: str = "Resume Builder API"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key")

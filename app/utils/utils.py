@@ -6,6 +6,7 @@ from datetime import timezone, datetime
 def generate_question_id(user_id: str, session_id: str, counter: int):
     return f"{user_id[:8]}-{session_id[:8]}-{counter}"
 
+
 def parse_ai_response(ai_response):
     """Parses AI response handling cases with Markdown formatting, JSON-as-string, or empty response."""
     try:

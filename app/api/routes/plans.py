@@ -7,9 +7,11 @@ from app.middleware.auth_dependency import get_current_user
 
 router = APIRouter()
 
+
 @router.get("/", response_model=list[PlanSchema])
 def list_all_plans(db: Session = Depends(get_db)):
     return get_all_plans(db)
+
 
 @router.get("/my-plan", response_model=UserPlanUsageSchema)
 def get_my_plan(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
@@ -18,11 +20,12 @@ def get_my_plan(db: Session = Depends(get_db), current_user=Depends(get_current_
         raise HTTPException(status_code=404, detail="User has no active plan")
     return plan
 
+
 @router.post("/subscribe", response_model=UserPlanUsageSchema)
 def subscribe_to_plan(
     plan_code: str = Form(...),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     user_plan = set_user_plan(db, current_user.id, plan_code)
     return user_plan

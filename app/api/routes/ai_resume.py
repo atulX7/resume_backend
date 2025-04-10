@@ -16,12 +16,14 @@ async def tailor_resume_api(
     skills: str = Form(...),  # Comma-separated list of skills
     user_resume: UploadFile = File(...),  # Uploaded resume file
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     """Tailors a user's resume to a specific job description using AI, providing inline review suggestions."""
     check_feature_access(db, current_user.id, FEATURE_RESUME_TAILOR)
     # ✅ Call AI resume tailoring service
-    tailored_response = tailor_resume(db, current_user.id, job_title, job_description, skills, user_resume)
+    tailored_response = tailor_resume(
+        db, current_user.id, job_title, job_description, skills, user_resume
+    )
 
     if not tailored_response:
         raise HTTPException(status_code=500, detail="Error generating tailored resume")

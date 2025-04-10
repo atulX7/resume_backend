@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, JSON
+from sqlalchemy import Column, String, ForeignKey, DateTime
 from datetime import datetime, timezone
 
 from app.database.connection import Base
+
 
 class MockInterviewSession(Base):
     __tablename__ = "mock_interview_sessions"
@@ -14,5 +15,9 @@ class MockInterviewSession(Base):
     previous_questions_s3_url = Column(String)
     interview_log_s3_url = Column(String)
     ai_feedback_s3_url = Column(String)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    status = Column(String, default="in_progress")  # "in_progress", "completed", "failed"
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    status = Column(
+        String, default="in_progress"
+    )  # "in_progress", "completed", "failed"

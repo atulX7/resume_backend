@@ -6,6 +6,7 @@ from app.services.auth_service import sync_user_service
 
 router = APIRouter()
 
+
 @router.post("/sync-user", response_model=SyncUserResponse)
 async def sync_user(user_data: SyncUserRequest, db: Session = Depends(get_db)):
     """Syncs authenticated users into PostgreSQL using Google access token from request body."""

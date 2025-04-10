@@ -30,15 +30,17 @@ if config.config_file_name is not None:
 from app.database.connection import Base
 
 # ✅ Automatically discover models
-from sqlalchemy.ext.declarative import DeclarativeMeta
 from importlib import import_module
 import pkgutil
+
+
 # ✅ Automatically load all models in the `app.models` package
 def get_metadata():
     models_package = import_module("app.models")
     for _, module_name, _ in pkgutil.iter_modules(models_package.__path__):
         import_module(f"app.models.{module_name}")
     return Base.metadata
+
 
 # ✅ Set target metadata dynamically
 target_metadata = get_metadata()
@@ -87,9 +89,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

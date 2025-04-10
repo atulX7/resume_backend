@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from fastapi import WebSocket
 
+
 async def video_stream(websocket: WebSocket):
     """Handles WebRTC video streaming."""
     await websocket.accept()

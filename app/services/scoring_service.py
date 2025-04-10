@@ -9,10 +9,11 @@ from app.utils.resume_parser import extract_resume_text
 from app.utils.utils import parse_ai_response
 from app.utils.openai_client import call_openai
 
+
 def score_resume(resume_file: UploadFile):
     """Analyzes and scores a resume."""
     if settings.MOCK_DATA:
-        ai_response = '''```json
+        ai_response = """```json
         {
             "layout": 75,
             "ats_readability": 80,
@@ -37,7 +38,7 @@ def score_resume(resume_file: UploadFile):
             "call_to_action": 60
         }
         ```
-        '''
+        """
     else:
         resume_text = extract_resume_text(resume_file)
         prompt = RESUME_SCORING_PROMPT.format(resume_text=resume_text)

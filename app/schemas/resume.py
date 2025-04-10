@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Dict
 
+
 class ResumeResponse(BaseModel):
     id: str
     user_id: str

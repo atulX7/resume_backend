@@ -12,14 +12,12 @@ from app.core.config import settings
 
 queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
 
-import io
 from boto3.s3.transfer import TransferConfig
-from botocore.exceptions import NoCredentialsError
 
 transfer_config = TransferConfig(
     multipart_threshold=5 * 1024 * 1024,  # Use multipart if file > 5MB
     max_concurrency=10,
-    use_threads=True
+    use_threads=True,
 )
 
 s3_client = boto3.client(
@@ -38,11 +36,12 @@ transcribe_client = boto3.client(
 
 
 sqs_client = boto3.client(
-    'sqs',
+    "sqs",
     aws_access_key_id=settings.AWS_ACCESS_KEY,
     aws_secret_access_key=settings.AWS_SECRET_KEY,
-    region_name=settings.AWS_REGION_NAME
+    region_name=settings.AWS_REGION_NAME,
 )
+
 
 def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
     """Uploads a resume file to the S3 bucket."""
@@ -55,7 +54,12 @@ def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
 
     try:
         file.file.seek(0)  # ✅ Reset pointer to start
-        s3_client.upload_fileobj(file.file, settings.S3_BUCKET_NAME, s3_path, ExtraArgs={"ContentType": file.content_type})
+        s3_client.upload_fileobj(
+            file.file,
+            settings.S3_BUCKET_NAME,
+            s3_path,
+            ExtraArgs={"ContentType": file.content_type},
+        )
         return f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/{s3_path}"
     except NoCredentialsError:
         raise Exception("AWS credentials not found")
@@ -70,7 +74,7 @@ def generate_presigned_url(s3_url, expiration=3600):
         presigned_url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket_name, "Key": key},
-            ExpiresIn=expiration
+            ExpiresIn=expiration,
         )
         return presigned_url
     except Exception as e:
@@ -82,7 +86,9 @@ def delete_resume_from_s3(s3_url: str):
     """Deletes a resume from S3 given its URL."""
     try:
         # ✅ Extract file key from S3 URL
-        s3_file_key = s3_url.split(f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/")[-1]
+        s3_file_key = s3_url.split(
+            f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/"
+        )[-1]
 
         # ✅ Delete from S3
         s3_client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=s3_file_key)
@@ -99,7 +105,9 @@ def download_resume_from_s3(s3_url: str):
     try:
         bucket_name = settings.S3_BUCKET_NAME
         # ✅ Extract the correct file key from S3 URL
-        file_key = s3_url.replace(f"https://{bucket_name}.s3.amazonaws.com/", "")  # Removes leading slash
+        file_key = s3_url.replace(
+            f"https://{bucket_name}.s3.amazonaws.com/", ""
+        )  # Removes leading slash
         # 🔹 Debugging: Ensure correct S3 key extraction
         print(f"🔍 Extracted S3 Key: {file_key}")
         # ✅ Check if file exists before downloading
@@ -115,7 +123,7 @@ def download_resume_from_s3(s3_url: str):
 
     except ClientError as e:
         print(f"S3 Client Error: {str(e)}")
-        if e.response['Error']['Code'] == '404':
+        if e.response["Error"]["Code"] == "404":
             raise Exception("File not found in S3")
         raise Exception(f"S3 Error: {str(e)}")
 
@@ -145,7 +153,9 @@ def transcribe_audio(s3_url: str) -> str:
         job_name = f"transcription-{int(time.time())}"  # Unique job name
         media_format = s3_url.split(".")[-1]  # Extract file format (mp3, wav, etc.)
         bucket_name = settings.S3_BUCKET_NAME
-        queue_logger.info(f"Fetching audio from bucket: {bucket_name} in region: {settings.AWS_REGION_NAME} to create job: {job_name}")
+        queue_logger.info(
+            f"Fetching audio from bucket: {bucket_name} in region: {settings.AWS_REGION_NAME} to create job: {job_name}"
+        )
         queue_logger.info(f"Media format: {media_format} from s3 url: {s3_url}")
 
         # Start transcription job
@@ -154,12 +164,14 @@ def transcribe_audio(s3_url: str) -> str:
             Media={"MediaFileUri": s3_url},
             MediaFormat=media_format,
             LanguageCode="en-US",
-            OutputBucketName=bucket_name  # Store result in S3
+            OutputBucketName=bucket_name,  # Store result in S3
         )
 
         # Wait for the transcription job to complete
         while True:
-            response = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
+            response = transcribe_client.get_transcription_job(
+                TranscriptionJobName=job_name
+            )
             status = response["TranscriptionJob"]["TranscriptionJobStatus"]
 
             if status in ["COMPLETED", "FAILED"]:
@@ -168,9 +180,12 @@ def transcribe_audio(s3_url: str) -> str:
 
         if status == "COMPLETED":
             # ✅ Get transcription file from S3
-            transcript_data = s3_client.get_object(Bucket=bucket_name, Key=f"{job_name}.json")
-            transcript_text = json.loads(transcript_data["Body"].read().decode("utf-8"))["results"]["transcripts"][0][
-                "transcript"]
+            transcript_data = s3_client.get_object(
+                Bucket=bucket_name, Key=f"{job_name}.json"
+            )
+            transcript_text = json.loads(
+                transcript_data["Body"].read().decode("utf-8")
+            )["results"]["transcripts"][0]["transcript"]
 
             # delete the original file if you don't need it anymore:
             s3_client.delete_object(Bucket=bucket_name, Key=f"{job_name}.json")
@@ -188,8 +203,7 @@ def transcribe_audio(s3_url: str) -> str:
 
 def send_to_mock_interview_queue(payload: dict):
     response = sqs_client.send_message(
-        QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL,
-        MessageBody=json.dumps(payload)
+        QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL, MessageBody=json.dumps(payload)
     )
     queue_logger.info(f"sending processing task to sqs. got response: {response}")
     return response
@@ -200,7 +214,7 @@ def upload_audio_to_s3_sync(
     user_id: str,
     session_id: str,
     filename: str,
-    content_type: str = "audio/mpeg"
+    content_type: str = "audio/mpeg",
 ) -> str:
     bucket_name = settings.S3_BUCKET_NAME
     file_key = f"{user_id}/mock_interviews/{session_id}/audio/audio_{filename}"
@@ -211,7 +225,7 @@ def upload_audio_to_s3_sync(
             bucket_name,
             file_key,
             ExtraArgs={"ContentType": content_type},
-            Config=transfer_config
+            Config=transfer_config,
         )
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
@@ -221,15 +235,17 @@ def upload_audio_to_s3_sync(
 
 
 def upload_mock_interview_data(
-    user_id: str,
-    session_id: str,
-    filename: str,
-    data: dict | list
+    user_id: str, session_id: str, filename: str, data: dict | list
 ) -> str:
     bucket_name = settings.S3_BUCKET_NAME
     file_key = f"{user_id}/mock_interviews/{session_id}/data/{filename}"
     try:
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=json.dumps(data), ContentType='application/json')
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=file_key,
+            Body=json.dumps(data),
+            ContentType="application/json",
+        )
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
         raise Exception("AWS credentials not found")
@@ -258,7 +274,7 @@ def fetch_mock_interview_data(s3_url: str) -> dict | list:
         # ✅ Check if object exists
         try:
             s3_client.head_object(Bucket=bucket_name, Key=file_key)
-        except ClientError as e:
+        except ClientError:
             return ""
 
         obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)

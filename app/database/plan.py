@@ -18,6 +18,7 @@ def get_user_plan(db: Session, user_id: int) -> UserPlanUsage:
         .first()
     )
 
+
 def increment_feature_usage(db: Session, user_id: int, feature_key: str) -> bool:
     user_plan = get_user_plan(db, user_id)
     if not user_plan:
@@ -90,7 +91,7 @@ def set_free_plan(db: Session, user_id: int):
     user_plan = UserPlanUsage(
         user_id=user_id,
         plan_id=free_plan.id,
-        usage_counts={}  # initialize with zero usage
+        usage_counts={},  # initialize with zero usage
     )
     db.add(user_plan)
     db.commit()

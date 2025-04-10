@@ -16,6 +16,7 @@ class Plan(Base):
     price = Column(Numeric(10, 2), default=0.00)
     feature_limits = Column(JSONB, default={})
 
+
 class UserPlanUsage(Base):
     __tablename__ = "user_plan_usage"
 

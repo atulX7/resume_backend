@@ -1,8 +1,18 @@
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
-from app.database.resume import create_resume, get_resume, delete_resume, update_resume_file, update_resume_data, \
-    get_resume_by_id
-from app.utils.aws_utils import upload_resume_to_s3, delete_resume_from_s3, generate_presigned_url
+from app.database.resume import (
+    create_resume,
+    get_resume,
+    delete_resume,
+    update_resume_file,
+    update_resume_data,
+    get_resume_by_id,
+)
+from app.utils.aws_utils import (
+    upload_resume_to_s3,
+    delete_resume_from_s3,
+    generate_presigned_url,
+)
 
 
 def handle_resume_upload(db: Session, user_id: str, file: UploadFile, title: str):
@@ -10,7 +20,9 @@ def handle_resume_upload(db: Session, user_id: str, file: UploadFile, title: str
     file_extension = file.filename.split(".")[-1].lower()
 
     if file_extension not in ["pdf", "doc", "docx", "txt"]:
-        raise ValueError("Invalid file format. Only PDF, DOCX, DOC, and TXT are allowed.")
+        raise ValueError(
+            "Invalid file format. Only PDF, DOCX, DOC, and TXT are allowed."
+        )
 
     # ✅ Upload file to S3
     s3_url = upload_resume_to_s3(file, user_id)
@@ -47,10 +59,17 @@ def get_resume_download_url(db: Session, user_id: str, resume_id: str):
         return None  # Resume not found or belongs to another user
 
     resume_url = generate_presigned_url(resume.s3_url)
-    return resume_url # Return the S3 public link
+    return resume_url  # Return the S3 public link
 
 
-def handle_resume_update(db: Session, resume_id: str, user_id: str, updated_resume: UploadFile, title: str, resume_data: str):
+def handle_resume_update(
+    db: Session,
+    resume_id: str,
+    user_id: str,
+    updated_resume: UploadFile,
+    title: str,
+    resume_data: str,
+):
     """Handles resume updates for file uploads and metadata updates."""
 
     # ✅ Fetch the resume
@@ -68,9 +87,9 @@ def handle_resume_update(db: Session, resume_id: str, user_id: str, updated_resu
         update_resume_data(db, resume, title, resume_data)
 
     return {
-        "id":resume.id,
-        "user_id":resume.user_id,
-        "title":resume.title,
-        "s3_url":resume.s3_url,
-        "resume_data":resume.resume_data
+        "id": resume.id,
+        "user_id": resume.user_id,
+        "title": resume.title,
+        "s3_url": resume.s3_url,
+        "resume_data": resume.resume_data,
     }

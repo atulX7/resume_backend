@@ -7,4 +7,4 @@ FEATURE_MOCK_INTERVIEW = "mock_interview"
 FEATURE_RESUME_EVAL = "resume_eval"
 FEATURE_RESUME_TAILOR = "resume_tailor"
 
-FREE_PLAN_CODE = 'free'
+FREE_PLAN_CODE = "free"

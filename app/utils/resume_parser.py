@@ -6,6 +6,7 @@ from app.utils.aws_utils import download_resume_from_s3, get_file_extension_from
 
 from fastapi import UploadFile
 
+
 def extract_text_from_pdf(file: UploadFile):
     """Extracts text from a PDF while maintaining sections."""
     text = []
@@ -15,6 +16,7 @@ def extract_text_from_pdf(file: UploadFile):
         text.append(page.get_text("text"))  # Extracts text while keeping formatting
 
     return "\n".join(text)
+
 
 def extract_text_from_docx(file: UploadFile):
     """Extracts text from a DOCX file while maintaining structure."""
@@ -26,6 +28,7 @@ def extract_text_from_docx(file: UploadFile):
 
     return "\n".join(text)
 
+
 def extract_resume_text(file: UploadFile):
     """Detects file type and extracts text accordingly."""
     try:
@@ -36,11 +39,14 @@ def extract_resume_text(file: UploadFile):
         elif file.filename.endswith(".txt"):
             return file.file.read().decode("utf-8")
         else:
-            raise ValueError("Unsupported file format. Only PDF, DOCX, and TXT are allowed.")
+            raise ValueError(
+                "Unsupported file format. Only PDF, DOCX, and TXT are allowed."
+            )
     except Exception as e:
         raise Exception(f"Error extracting text: {str(e)}")
 
-#todo: if not used delete it
+
+# todo: if not used delete it
 def get_resume_text_from_s3(s3_url: str):
     """
     Downloads a resume from S3, extracts its file extension, and retrieves text.

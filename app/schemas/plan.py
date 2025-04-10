@@ -2,6 +2,7 @@ from pydantic import BaseModel, validator
 from typing import Optional, Dict
 from datetime import datetime
 
+
 class PlanSchema(BaseModel):
     code: str
     name: str
@@ -12,6 +13,7 @@ class PlanSchema(BaseModel):
 
     class Config:
         orm_mode = True
+
 
 class UserPlanUsageSchema(BaseModel):
     user_id: str

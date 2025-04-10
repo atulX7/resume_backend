@@ -7,11 +7,12 @@ from app.services.share_service import share_resume
 
 router = APIRouter()
 
+
 @router.post("/generate", response_model=ResumeShareResponse)
 async def generate_public_resume_link(
-        request: ResumeShareRequest,
-        db: Session = Depends(get_db),
-        current_user=Depends(get_current_user)
+    request: ResumeShareRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Generates a public link for a resume."""
     return share_resume(db, request)
