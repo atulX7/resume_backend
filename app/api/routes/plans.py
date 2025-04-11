@@ -30,12 +30,18 @@ def get_my_plan(db: Session = Depends(get_db), current_user=Depends(get_current_
         logger.info(f"[MY_PLAN] Fetching plan for user: {current_user.id}")
         plan = get_user_plan(db, current_user.id)
         if not plan:
-            logger.warning(f"[MY_PLAN] No active plan found for user: {current_user.id}")
+            logger.warning(
+                f"[MY_PLAN] No active plan found for user: {current_user.id}"
+            )
             raise HTTPException(status_code=404, detail="User has no active plan")
-        logger.info(f"[MY_PLAN] Found plan '{plan.plan.code}' for user: {current_user.id}")
+        logger.info(
+            f"[MY_PLAN] Found plan '{plan.plan.code}' for user: {current_user.id}"
+        )
         return plan
     except Exception as e:
-        logger.error(f"[MY_PLAN] Failed to fetch plan for user {current_user.id}: {str(e)}")
+        logger.error(
+            f"[MY_PLAN] Failed to fetch plan for user {current_user.id}: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail="Failed to retrieve user plan")
 
 
@@ -46,10 +52,16 @@ def subscribe_to_plan(
     current_user=Depends(get_current_user),
 ):
     try:
-        logger.info(f"[SUBSCRIBE] User {current_user.id} subscribing to plan: {plan_code}")
+        logger.info(
+            f"[SUBSCRIBE] User {current_user.id} subscribing to plan: {plan_code}"
+        )
         user_plan = set_user_plan(db, current_user.id, plan_code)
-        logger.info(f"[SUBSCRIBE] User {current_user.id} successfully subscribed to: {plan_code}")
+        logger.info(
+            f"[SUBSCRIBE] User {current_user.id} successfully subscribed to: {plan_code}"
+        )
         return user_plan
     except Exception as e:
-        logger.error(f"[SUBSCRIBE] Failed to subscribe user {current_user.id} to plan {plan_code}: {str(e)}")
+        logger.error(
+            f"[SUBSCRIBE] Failed to subscribe user {current_user.id} to plan {plan_code}: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail="Failed to subscribe to plan")

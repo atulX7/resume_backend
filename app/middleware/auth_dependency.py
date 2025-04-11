@@ -49,7 +49,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
             time_diff = datetime.now(timezone.utc) - user.last_login_at
             if time_diff > timedelta(hours=24):
                 logger.warning(f"[AUTH] Session expired for user: {user.id}")
-                raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
+                raise HTTPException(
+                    status_code=401, detail="Session expired. Please log in again."
+                )
             else:
                 logger.info(f"[AUTH] User {user.id} session is still valid")
 

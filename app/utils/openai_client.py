@@ -25,4 +25,3 @@ def call_openai(prompt: str):
     except Exception as e:
         logger.error(f"❌ Unexpected error calling OpenAI: {str(e)}", exc_info=True)
         raise Exception(f"Unexpected error calling OpenAI: {str(e)}")
-

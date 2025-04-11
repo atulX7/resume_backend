@@ -6,10 +6,23 @@ from fastapi import UploadFile
 import logging
 
 from app.core.config import settings
-from app.utils.constants import MAX_QUESTIONS_PER_SESSION, INTRO_QUESTION, MOCK_INTERVIEW_PREV_Q_FILE, \
-    MOCK_INTERVIEW_PREV_JD_FILE, MOCK_INTERVIEW_AI_FEEDBACK_FILE, MOCK_INTERVIEW_LOG_FILE
-from app.utils.mock_data import MOCK_INTERVIEW_QUESTIONS_RESPONSE, MOCK_RESUME_S3_URL, MOCK_JD_S3_URL, \
-    MOCK_PREV_QUESTIONS_S3_URL, MOCK_AUDIO_S3_URL, MOCK_AUDIO_TRANSCRIPTION_TEXT, MOCK_INTERVIEW_EVALUATION_RESPONSE
+from app.utils.constants import (
+    MAX_QUESTIONS_PER_SESSION,
+    INTRO_QUESTION,
+    MOCK_INTERVIEW_PREV_Q_FILE,
+    MOCK_INTERVIEW_PREV_JD_FILE,
+    MOCK_INTERVIEW_AI_FEEDBACK_FILE,
+    MOCK_INTERVIEW_LOG_FILE,
+)
+from app.utils.mock_data import (
+    MOCK_INTERVIEW_QUESTIONS_RESPONSE,
+    MOCK_RESUME_S3_URL,
+    MOCK_JD_S3_URL,
+    MOCK_PREV_QUESTIONS_S3_URL,
+    MOCK_AUDIO_S3_URL,
+    MOCK_AUDIO_TRANSCRIPTION_TEXT,
+    MOCK_INTERVIEW_EVALUATION_RESPONSE,
+)
 from app.utils.mock_interview_utils import (
     format_skipped_question,
     get_openai_interview_evaluation,
@@ -60,7 +73,9 @@ def start_mock_interview(
 ):
     """Starts a new mock interview session by storing resume and initializing the interview."""
     session_id = str(uuid.uuid4())
-    logger.info(f"[MOCK START] Starting interview for user: {user_id}, job: {job_title}, session: {session_id}")
+    logger.info(
+        f"[MOCK START] Starting interview for user: {user_id}, job: {job_title}, session: {session_id}"
+    )
     try:
         if settings.MOCK_DATA:
             logger.info("Using mock data for questions.")
@@ -76,31 +91,47 @@ def start_mock_interview(
             ai_response = call_openai(prompt)
 
         generated_questions = parse_ai_response(ai_response)["questions"]
-        all_questions = [INTRO_QUESTION] + generated_questions[:MAX_QUESTIONS_PER_SESSION]
+        all_questions = [INTRO_QUESTION] + generated_questions[
+            :MAX_QUESTIONS_PER_SESSION
+        ]
 
         questions_with_ids = []
         for counter, question in enumerate(all_questions, start=1):
             question_id = generate_question_id(user_id, session_id, counter)
-            questions_with_ids.append({"question_id": question_id, "question": question})
+            questions_with_ids.append(
+                {"question_id": question_id, "question": question}
+            )
 
         if settings.MOCK_DATA:
             resume_s3_url = MOCK_RESUME_S3_URL
             jd_s3_url = MOCK_JD_S3_URL
             prev_question_s3_url = MOCK_PREV_QUESTIONS_S3_URL
         else:
-            prev_question_s3_url = upload_mock_interview_data(user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE,
-                                                              questions_with_ids)
+            prev_question_s3_url = upload_mock_interview_data(
+                user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE, questions_with_ids
+            )
             resume_s3_url = upload_resume_to_s3(resume_file, user_id, session_id)
             jd_json = {"jd": job_description}
-            jd_s3_url = upload_mock_interview_data(user_id, session_id, MOCK_INTERVIEW_PREV_JD_FILE, jd_json)
+            jd_s3_url = upload_mock_interview_data(
+                user_id, session_id, MOCK_INTERVIEW_PREV_JD_FILE, jd_json
+            )
 
-        create_mock_interview_session(db, session_id, user_id, job_title, jd_s3_url, resume_s3_url,
-                                      prev_question_s3_url)
+        create_mock_interview_session(
+            db,
+            session_id,
+            user_id,
+            job_title,
+            jd_s3_url,
+            resume_s3_url,
+            prev_question_s3_url,
+        )
         logger.info(f"✅ Mock interview session created: {session_id}")
         return {"session_id": session_id, "questions": questions_with_ids}
 
     except Exception as e:
-        logger.error(f"❌ Failed to start mock interview for user: {user_id}, Error: {str(e)}")
+        logger.error(
+            f"❌ Failed to start mock interview for user: {user_id}, Error: {str(e)}"
+        )
         raise
 
 
@@ -120,7 +151,9 @@ async def get_audio_file_map(user_id, session_id, audio_files):
         audio_s3_urls = await asyncio.gather(*upload_tasks)
         return {file.filename: url for file, url in zip(audio_files, audio_s3_urls)}
     except Exception as e:
-        logger.error(f"❌ Error uploading audio files for session: {session_id}, Error: {str(e)}")
+        logger.error(
+            f"❌ Error uploading audio files for session: {session_id}, Error: {str(e)}"
+        )
         raise
 
 
@@ -205,7 +238,9 @@ async def process_mock_interview(
         queue_logger.info(
             f"❌ Error processing mock interview session {session_id}: {str(e)}"
         )
-    save_interview_results(db, session, interview_log_s3_url, ai_feedback_s3_url, session_status)
+    save_interview_results(
+        db, session, interview_log_s3_url, ai_feedback_s3_url, session_status
+    )
 
 
 def get_mock_interview_sessions_for_user(db: Session, user_id: str):

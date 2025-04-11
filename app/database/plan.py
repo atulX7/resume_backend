@@ -37,7 +37,9 @@ def get_user_plan(db: Session, user_id: int) -> UserPlanUsage:
 
 
 def increment_feature_usage(db: Session, user_id: int, feature_key: str) -> bool:
-    logger.info(f"[PLAN_USAGE] Checking usage for feature '{feature_key}' for user: {user_id}")
+    logger.info(
+        f"[PLAN_USAGE] Checking usage for feature '{feature_key}' for user: {user_id}"
+    )
     user_plan = get_user_plan(db, user_id)
     if not user_plan:
         logger.warning(f"[PLAN_USAGE] No active plan found for user: {user_id}")
@@ -45,13 +47,17 @@ def increment_feature_usage(db: Session, user_id: int, feature_key: str) -> bool
 
     usage = user_plan.usage_counts or {}
     usage_count = usage.get(feature_key, 0)
-    logger.info(f"[PLAN_USAGE] Current count: {usage_count} | Limit: {user_plan.plan.feature_limits.get(feature_key)}")
+    logger.info(
+        f"[PLAN_USAGE] Current count: {usage_count} | Limit: {user_plan.plan.feature_limits.get(feature_key)}"
+    )
 
     limit = user_plan.plan.feature_limits.get(feature_key, 0)
     is_premium_user = user_plan.plan.is_premium
 
     if not is_premium_user and usage_count >= limit:
-        logger.warning(f"[PLAN_USAGE] Feature '{feature_key}' blocked for user: {user_id}. Limit reached.")
+        logger.warning(
+            f"[PLAN_USAGE] Feature '{feature_key}' blocked for user: {user_id}. Limit reached."
+        )
         return False
 
     usage[feature_key] = usage_count + 1
@@ -60,7 +66,9 @@ def increment_feature_usage(db: Session, user_id: int, feature_key: str) -> bool
     try:
         db.commit()
         db.refresh(user_plan)
-        logger.info(f"[PLAN_USAGE] Usage incremented for feature '{feature_key}' for user: {user_id}")
+        logger.info(
+            f"[PLAN_USAGE] Usage incremented for feature '{feature_key}' for user: {user_id}"
+        )
         return True
     except Exception as e:
         logger.error(f"[PLAN_USAGE] Failed to increment usage. Error: {str(e)}")
@@ -101,7 +109,9 @@ def set_user_plan(db: Session, user_id: int, plan_code: str):
         logger.info(f"[PLAN] Plan '{plan_code}' assigned to user: {user_id}")
         return user_plan
     except Exception as e:
-        logger.error(f"[PLAN] Failed to set plan '{plan_code}' for user: {user_id}. Error: {str(e)}")
+        logger.error(
+            f"[PLAN] Failed to set plan '{plan_code}' for user: {user_id}. Error: {str(e)}"
+        )
         raise
 
 
@@ -131,5 +141,7 @@ def set_free_plan(db: Session, user_id: int):
         db.commit()
         logger.info(f"[PLAN] Free plan successfully assigned to user: {user_id}")
     except Exception as e:
-        logger.error(f"[PLAN] Failed to assign free plan to user: {user_id}. Error: {str(e)}")
+        logger.error(
+            f"[PLAN] Failed to assign free plan to user: {user_id}. Error: {str(e)}"
+        )
         raise

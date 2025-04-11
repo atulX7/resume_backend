@@ -11,20 +11,26 @@ logger = logging.getLogger("app")
 def get_user_by_email(db: Session, email: str, update_last_login: bool = False):
     """Fetch a user by email"""
     """Fetch a user by email, optionally updating last_login_at"""
-    logger.info(f"[GET_USER_BY_EMAIL] Fetching user for email: {email} | update_last_login={update_last_login}")
+    logger.info(
+        f"[GET_USER_BY_EMAIL] Fetching user for email: {email} | update_last_login={update_last_login}"
+    )
     try:
         user = db.query(User).filter(User.email == email).first()
         if user:
             logger.info(f"[GET_USER_BY_EMAIL] User found: {user.id}")
             if update_last_login:
-                logger.info(f"[GET_USER_BY_EMAIL] Updating last_login_at for user: {user.id}")
+                logger.info(
+                    f"[GET_USER_BY_EMAIL] Updating last_login_at for user: {user.id}"
+                )
                 user.last_login_at = datetime.now(timezone.utc)
                 db.commit()
         else:
             logger.warning(f"[GET_USER_BY_EMAIL] No user found for email: {email}")
         return user
     except Exception as e:
-        logger.error(f"[GET_USER_BY_EMAIL] Error fetching user by email: {email} | {str(e)}")
+        logger.error(
+            f"[GET_USER_BY_EMAIL] Error fetching user by email: {email} | {str(e)}"
+        )
         return None
 
 
@@ -72,7 +78,7 @@ def create_user(db: Session, name: str, email: str, image: str = None):
             name=name,
             email=email,
             image=image,
-            role_id=user_role.id
+            role_id=user_role.id,
         )
         db.add(user)
         db.commit()
@@ -80,5 +86,7 @@ def create_user(db: Session, name: str, email: str, image: str = None):
         logger.info(f"[CREATE_USER] New user created with ID: {user.id}")
         return user
     except Exception as e:
-        logger.error(f"[CREATE_USER] Failed to create user for email: {email} | {str(e)}")
+        logger.error(
+            f"[CREATE_USER] Failed to create user for email: {email} | {str(e)}"
+        )
         raise

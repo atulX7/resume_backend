@@ -15,7 +15,7 @@ MOCK_INTERVIEW_LOG_FILE = "interview_log.json"
 MOCK_INTERVIEW_AI_FEEDBACK_FILE = "ai_feedback.json"
 
 EMAIL_SUB = "📢 Your Mock Interview Results Are Available!"
-EMAIL_BODY= """
+EMAIL_BODY = """
 Hi {user_name},
 
 Your mock interview session for **{job_title}** has been evaluated.

@@ -14,6 +14,7 @@ from app.utils.utils import parse_ai_response, calculate_interview_duration
 logger = logging.getLogger("app")
 queue_logger = logging.getLogger("sqs")
 
+
 def format_skipped_question(question):
     """Returns a default response for skipped questions."""
     logger.warning(f"⚠️ No audio found for question_id: {question['question_id']}")
@@ -83,4 +84,7 @@ async def send_interview_result_email(db: Session, user_id: str, session, final_
         await send_email(user.email, email_subject, email_body)
         logger.info(f"✅ Interview results email sent to user: {user.email}")
     except Exception as e:
-        logger.error(f"❌ Failed to send interview results email to user {user_id}: {e}", exc_info=True)
+        logger.error(
+            f"❌ Failed to send interview results email to user {user_id}: {e}",
+            exc_info=True,
+        )

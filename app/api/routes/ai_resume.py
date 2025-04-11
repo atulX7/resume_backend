@@ -12,6 +12,7 @@ router = APIRouter()
 
 logger = logging.getLogger("app")
 
+
 @router.post("/tailor")
 async def tailor_resume_api(
     job_title: str = Form(...),
@@ -22,14 +23,20 @@ async def tailor_resume_api(
     current_user=Depends(get_current_user),
 ):
     """Tailors a user's resume to a specific job description using AI, providing inline review suggestions."""
-    logger.info(f"🔍 Checking access for user plan: user_id={current_user.id}, feature={FEATURE_RESUME_TAILOR}")
+    logger.info(
+        f"🔍 Checking access for user plan: user_id={current_user.id}, feature={FEATURE_RESUME_TAILOR}"
+    )
     try:
         check_feature_access(db, current_user.id, FEATURE_RESUME_TAILOR)
     except Exception as e:
-        logger.warning(f"⚠️ Feature access denied for user_id={current_user.id}: {str(e)}")
+        logger.warning(
+            f"⚠️ Feature access denied for user_id={current_user.id}: {str(e)}"
+        )
         raise
 
-    logger.info(f"🧠 Tailoring resume: user_id={current_user.id}, job_title='{job_title}'")
+    logger.info(
+        f"🧠 Tailoring resume: user_id={current_user.id}, job_title='{job_title}'"
+    )
 
     # ✅ Call AI resume tailoring service
     tailored_response = tailor_resume(
@@ -37,8 +44,12 @@ async def tailor_resume_api(
     )
 
     if not tailored_response:
-        logger.error(f"❌ Failed to tailor resume: user_id={current_user.id}, job_title={job_title}")
+        logger.error(
+            f"❌ Failed to tailor resume: user_id={current_user.id}, job_title={job_title}"
+        )
         raise HTTPException(status_code=500, detail="Error generating tailored resume")
 
-    logger.info(f"✅ Tailored resume generated successfully for user_id={current_user.id}")
+    logger.info(
+        f"✅ Tailored resume generated successfully for user_id={current_user.id}"
+    )
     return tailored_response

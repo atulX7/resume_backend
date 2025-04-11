@@ -16,7 +16,9 @@ logger = logging.getLogger("app")
 
 def score_resume(resume_file: UploadFile):
     """Analyzes and scores a resume."""
-    logger.info(f"[RESUME_SCORING] Starting resume scoring for uploaded file: {resume_file.filename}")
+    logger.info(
+        f"[RESUME_SCORING] Starting resume scoring for uploaded file: {resume_file.filename}"
+    )
     try:
         if settings.MOCK_DATA:
             logger.info("[RESUME_SCORING] Using mock data for scoring.")
@@ -29,16 +31,27 @@ def score_resume(resume_file: UploadFile):
             ai_response = call_openai(prompt)
 
         try:
-            scores = parse_ai_response(ai_response)  # Convert AI response to a dictionary
+            scores = parse_ai_response(
+                ai_response
+            )  # Convert AI response to a dictionary
             logger.info("[RESUME_SCORING] Successfully parsed AI response.")
         except json.JSONDecodeError as e:
-            logger.error(f"[RESUME_SCORING] Failed to decode AI response: {str(e)}", exc_info=True)
+            logger.error(
+                f"[RESUME_SCORING] Failed to decode AI response: {str(e)}",
+                exc_info=True,
+            )
             scores = {}  # Default empty dict if parsing fails
         except Exception as e:
-            logger.error(f"[RESUME_SCORING] Unexpected error while parsing AI response: {str(e)}", exc_info=True)
+            logger.error(
+                f"[RESUME_SCORING] Unexpected error while parsing AI response: {str(e)}",
+                exc_info=True,
+            )
             scores = {}
 
         return ResumeScoringResponse(scores=scores)
     except Exception as e:
-        logger.error(f"[RESUME_SCORING] Scoring failed for file {resume_file.filename}: {str(e)}", exc_info=True)
+        logger.error(
+            f"[RESUME_SCORING] Scoring failed for file {resume_file.filename}: {str(e)}",
+            exc_info=True,
+        )
         raise

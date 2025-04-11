@@ -13,9 +13,12 @@ USE_SSL = SMTP_PORT == 465
 
 queue_logger = logging.getLogger("sqs")
 
+
 async def send_email(to_email: str, subject: str, message: str):
     """Sends an email notification to the user."""
-    queue_logger.info(f"📤 Preparing to send email to: {to_email} with subject: '{subject}'")
+    queue_logger.info(
+        f"📤 Preparing to send email to: {to_email} with subject: '{subject}'"
+    )
 
     try:
         msg = MIMEMultipart()
@@ -40,6 +43,11 @@ async def send_email(to_email: str, subject: str, message: str):
 
         queue_logger.info(f"✅ Email sent successfully to {to_email}")
     except smtplib.SMTPException as e:
-        queue_logger.error(f"❌ SMTP error occurred while sending email to {to_email}: {e}", exc_info=True)
+        queue_logger.error(
+            f"❌ SMTP error occurred while sending email to {to_email}: {e}",
+            exc_info=True,
+        )
     except Exception as e:
-        queue_logger.error(f"❌ Unexpected error while sending email to {to_email}: {e}", exc_info=True)
+        queue_logger.error(
+            f"❌ Unexpected error while sending email to {to_email}: {e}", exc_info=True
+        )

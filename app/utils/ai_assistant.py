@@ -6,6 +6,7 @@ from app.utils.resume_parser import extract_resume_text
 
 logger = logging.getLogger("app")
 
+
 def analyze_resume_with_ai(
     job_title: str, job_description: str, skills: str, resume_file
 ):
@@ -29,6 +30,8 @@ def analyze_resume_with_ai(
         return content
 
     except Exception as e:
-        logger.error(f"[RESUME_ANALYSIS] Error during resume analysis for job: '{job_title}'. Error: {str(e)}",
-                     exc_info=True)
+        logger.error(
+            f"[RESUME_ANALYSIS] Error during resume analysis for job: '{job_title}'. Error: {str(e)}",
+            exc_info=True,
+        )
         raise

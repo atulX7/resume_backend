@@ -35,15 +35,21 @@ async def start_interview(
 ):
     """Starts a mock interview session and generates all questions in one call."""
     try:
-        logger.info(f"[MOCK_INTERVIEW_START] Checking access for user: {current_user.id}, job: {job_title}")
+        logger.info(
+            f"[MOCK_INTERVIEW_START] Checking access for user: {current_user.id}, job: {job_title}"
+        )
         check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
 
-        logger.info(f"[MOCK_INTERVIEW_START] Initiating mock interview for user: {current_user.id}")
+        logger.info(
+            f"[MOCK_INTERVIEW_START] Initiating mock interview for user: {current_user.id}"
+        )
         return start_mock_interview(
             db, current_user.id, job_title, job_description, resume_file
         )
     except Exception as e:
-        logger.error(f"[MOCK_INTERVIEW_START] Failed to start interview for user {current_user.id}: {e}")
+        logger.error(
+            f"[MOCK_INTERVIEW_START] Failed to start interview for user {current_user.id}: {e}"
+        )
         raise HTTPException(status_code=500, detail="Failed to start mock interview")
 
 
@@ -59,13 +65,20 @@ async def process_interview(
     Processes all answers, evaluates them, and generates final interview results.
     """
     try:
-        logger.info(f"[MOCK_PROCESS] Verifying access for user: {current_user.id}, session: {session_id}")
+        logger.info(
+            f"[MOCK_PROCESS] Verifying access for user: {current_user.id}, session: {session_id}"
+        )
         check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
 
-        logger.info(f"[MOCK_PROCESS] Uploading audio files to S3 for session: {session_id}")
-        audio_file_map = await get_audio_file_map(current_user.id, session_id, audio_files)
+        logger.info(
+            f"[MOCK_PROCESS] Uploading audio files to S3 for session: {session_id}"
+        )
+        audio_file_map = await get_audio_file_map(
+            current_user.id, session_id, audio_files
+        )
 
         from app.utils.aws_utils import send_to_mock_interview_queue
+
         logger.info(f"[MOCK_PROCESS] Dispatching session: {session_id} to SQS queue")
 
         send_to_mock_interview_queue(
@@ -77,7 +90,9 @@ async def process_interview(
             }
         )
 
-        logger.info(f"[MOCK_PROCESS] Mock interview session {session_id} queued successfully")
+        logger.info(
+            f"[MOCK_PROCESS] Mock interview session {session_id} queued successfully"
+        )
 
         return {
             "status": "processing",
@@ -96,11 +111,17 @@ async def get_user_mock_interview_sessions(
     Retrieves a list of all mock interview sessions for a given user.
     """
     try:
-        logger.info(f"[MOCK_SESSION_LIST] Fetching all sessions for user: {current_user.id}")
+        logger.info(
+            f"[MOCK_SESSION_LIST] Fetching all sessions for user: {current_user.id}"
+        )
         return get_mock_interview_sessions_for_user(db, current_user.id)
     except Exception as e:
-        logger.error(f"[MOCK_SESSION_LIST] Error fetching sessions for user {current_user.id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch mock interview sessions")
+        logger.error(
+            f"[MOCK_SESSION_LIST] Error fetching sessions for user {current_user.id}: {e}"
+        )
+        raise HTTPException(
+            status_code=500, detail="Failed to fetch mock interview sessions"
+        )
 
 
 @router.get("/sessions/{session_id}", response_model=MockInterviewSessionDetails)
@@ -113,8 +134,12 @@ async def get_mock_interview_details(
     Retrieves detailed information about a specific mock interview session.
     """
     try:
-        logger.info(f"[MOCK_SESSION_DETAIL] Fetching session: {session_id} for user: {current_user.id}")
+        logger.info(
+            f"[MOCK_SESSION_DETAIL] Fetching session: {session_id} for user: {current_user.id}"
+        )
         return get_mock_interview_session_details(db, session_id)
     except Exception as e:
-        logger.error(f"[MOCK_SESSION_DETAIL] Error fetching details for session {session_id}: {e}")
+        logger.error(
+            f"[MOCK_SESSION_DETAIL] Error fetching details for session {session_id}: {e}"
+        )
         raise HTTPException(status_code=500, detail="Failed to fetch session details")

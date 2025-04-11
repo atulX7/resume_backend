@@ -11,7 +11,8 @@ logger = logging.getLogger("app")
 def generate_cover_letter(db: Session, request: CoverLetterRequest):
     """Generates an AI-powered cover letter."""
     logger.info(
-        f"[COVER_LETTER] Generating cover letter for job: {request.job_title} at company: {request.company_name}")
+        f"[COVER_LETTER] Generating cover letter for job: {request.job_title} at company: {request.company_name}"
+    )
 
     try:
         prompt = COVER_LETTER_PROMPT.format(

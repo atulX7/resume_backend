@@ -23,7 +23,9 @@ def tailor_resume(
     user_resume: UploadFile,
 ):
     """Sends the uploaded resume file as an attachment to AI for analysis and improvement recommendations."""
-    logger.info(f"[TAILOR_RESUME] Start tailoring resume for user: {user_id}, job: {job_title}")
+    logger.info(
+        f"[TAILOR_RESUME] Start tailoring resume for user: {user_id}, job: {job_title}"
+    )
 
     if settings.MOCK_DATA:
         logger.info("[TAILOR_RESUME] Using MOCK data for resume tailoring.")
@@ -33,14 +35,22 @@ def tailor_resume(
     else:
         try:
             logger.info("[TAILOR_RESUME] Calling AI assistant to analyze resume...")
-            ai_response = analyze_resume_with_ai(job_title, job_description, skills, user_resume)
+            ai_response = analyze_resume_with_ai(
+                job_title, job_description, skills, user_resume
+            )
             review_suggestions = parse_ai_response(ai_response)
             logger.info("[TAILOR_RESUME] AI response parsed successfully.")
         except json.JSONDecodeError as e:
-            logger.error(f"[TAILOR_RESUME] JSON decode error while parsing AI response: {str(e)}", exc_info=True)
+            logger.error(
+                f"[TAILOR_RESUME] JSON decode error while parsing AI response: {str(e)}",
+                exc_info=True,
+            )
             review_suggestions = {}
         except Exception as e:
-            logger.error(f"[TAILOR_RESUME] Unexpected error in tailoring: {str(e)}", exc_info=True)
+            logger.error(
+                f"[TAILOR_RESUME] Unexpected error in tailoring: {str(e)}",
+                exc_info=True,
+            )
             review_suggestions = {}
 
         try:
@@ -48,11 +58,11 @@ def tailor_resume(
             resume = handle_resume_upload(db, user_id, user_resume, job_title)
             s3_url = generate_presigned_url(resume.s3_url)
         except Exception as e:
-            logger.error(f"[TAILOR_RESUME] Failed to upload tailored resume to S3: {str(e)}", exc_info=True)
+            logger.error(
+                f"[TAILOR_RESUME] Failed to upload tailored resume to S3: {str(e)}",
+                exc_info=True,
+            )
             s3_url = ""
 
     logger.info(f"[TAILOR_RESUME] Tailoring complete for user: {user_id}")
-    return {
-        "resume_url": s3_url,
-        "review_suggestions": review_suggestions
-    }
+    return {"resume_url": s3_url, "review_suggestions": review_suggestions}

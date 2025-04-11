@@ -8,12 +8,15 @@ from app.services.cover_letter_service import generate_cover_letter
 router = APIRouter()
 logger = logging.getLogger("app")
 
+
 @router.post("/generate", response_model=CoverLetterResponse)
 async def ai_generate_cover_letter(
     request: CoverLetterRequest, db: Session = Depends(get_db)
 ):
     """Generates a cover letter using AI."""
-    logger.info(f"Received cover letter generation request for: {request.job_title} at {request.company_name}")
+    logger.info(
+        f"Received cover letter generation request for: {request.job_title} at {request.company_name}"
+    )
 
     try:
         response = generate_cover_letter(db, request)

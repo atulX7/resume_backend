@@ -144,10 +144,15 @@ def get_file_extension_from_s3_url(s3_url):
         bucket_name = settings.S3_BUCKET_NAME
         key = s3_url.split(f"https://{bucket_name}.s3.amazonaws.com/")[-1]
         file_extension = key.split(".")[-1]
-        logger.info(f"[S3_FILE_EXT] Extracted file extension '{file_extension}' from key: {key}")
+        logger.info(
+            f"[S3_FILE_EXT] Extracted file extension '{file_extension}' from key: {key}"
+        )
         return file_extension
     except Exception as e:
-        logger.error(f"[S3_FILE_EXT] Failed to extract file extension from URL: {s3_url} | Error: {e}", exc_info=True)
+        logger.error(
+            f"[S3_FILE_EXT] Failed to extract file extension from URL: {s3_url} | Error: {e}",
+            exc_info=True,
+        )
         raise
 
 
@@ -165,7 +170,9 @@ def transcribe_audio(s3_url: str) -> str:
         job_name = f"transcription-{int(time.time())}"  # Unique job name
         media_format = s3_url.split(".")[-1]  # Extract file format (mp3, wav, etc.)
         bucket_name = settings.S3_BUCKET_NAME
-        queue_logger.info(f"[TRANSCRIBE] Starting job: {job_name}, format: {media_format}")
+        queue_logger.info(
+            f"[TRANSCRIBE] Starting job: {job_name}, format: {media_format}"
+        )
 
         queue_logger.info(f"Media format: {media_format} from s3 url: {s3_url}")
 
@@ -252,6 +259,7 @@ def upload_audio_to_s3_sync(
     except Exception as e:
         logger.error(f"[AUDIO_UPLOAD] Upload failed: {e}", exc_info=True)
         raise
+
 
 def upload_mock_interview_data(
     user_id: str, session_id: str, filename: str, data: dict | list

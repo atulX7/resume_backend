@@ -21,7 +21,9 @@ def sync_user_service(db: Session, access_token: str):
 
         if not email:
             logger.error("[AUTH] Email missing in Google response.")
-            raise HTTPException(status_code=400, detail="Email not found in Google user info")
+            raise HTTPException(
+                status_code=400, detail="Email not found in Google user info"
+            )
 
         logger.info(f"[AUTH] Fetched Google user profile for email: {email}")
 
@@ -55,7 +57,9 @@ def fetch_google_user(access_token: str):
     logger.info("[AUTH] Validating Google access token.")
 
     try:
-        response = requests.get(GOOGLE_USER_INFO_URL, params={"access_token": access_token})
+        response = requests.get(
+            GOOGLE_USER_INFO_URL, params={"access_token": access_token}
+        )
 
         if response.status_code != 200:
             logger.warning(f"[AUTH] Invalid access token. Response: {response.text}")

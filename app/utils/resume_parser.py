@@ -10,6 +10,7 @@ from fastapi import UploadFile
 
 logger = logging.getLogger("app")
 
+
 def extract_text_from_pdf(file: UploadFile):
     """Extracts text from a PDF while maintaining sections."""
     logger.info(f"📄 Extracting text from PDF file: {file.filename}")
@@ -40,7 +41,9 @@ def extract_text_from_docx(file: UploadFile):
 
 def extract_resume_text(file: UploadFile):
     """Detects file type and extracts text accordingly."""
-    logger.info(f"🔍 Detecting format and extracting resume text for file: {file.filename}")
+    logger.info(
+        f"🔍 Detecting format and extracting resume text for file: {file.filename}"
+    )
     try:
         if file.filename.endswith(".pdf"):
             return extract_text_from_pdf(file)
@@ -50,7 +53,9 @@ def extract_resume_text(file: UploadFile):
             logger.info("📃 Extracting text from plain text file")
             return file.file.read().decode("utf-8")
         else:
-            raise ValueError("Unsupported file format. Only PDF, DOCX, and TXT are allowed.")
+            raise ValueError(
+                "Unsupported file format. Only PDF, DOCX, and TXT are allowed."
+            )
     except Exception as e:
         logger.error(f"❌ Failed to extract resume text: {str(e)}", exc_info=True)
         raise Exception(f"Error extracting resume text: {str(e)}")

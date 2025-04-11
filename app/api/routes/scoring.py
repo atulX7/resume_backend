@@ -22,17 +22,27 @@ async def ai_score_resume(
 ):
     """Scores a resume using AI analysis."""
     try:
-        logger.info(f"[RESUME_SCORE] Checking feature access for user: {current_user.id}")
+        logger.info(
+            f"[RESUME_SCORE] Checking feature access for user: {current_user.id}"
+        )
         check_feature_access(db, current_user.id, FEATURE_RESUME_EVAL)
 
-        logger.info(f"[RESUME_SCORE] Scoring resume for user: {current_user.id}, filename: {resume_file.filename}")
+        logger.info(
+            f"[RESUME_SCORE] Scoring resume for user: {current_user.id}, filename: {resume_file.filename}"
+        )
         result = score_resume(resume_file)
 
-        logger.info(f"[RESUME_SCORE] Successfully scored resume for user: {current_user.id}")
+        logger.info(
+            f"[RESUME_SCORE] Successfully scored resume for user: {current_user.id}"
+        )
         return result
     except HTTPException as e:
-        logger.warning(f"[RESUME_SCORE] Access denied for user: {current_user.id} - {e.detail}")
+        logger.warning(
+            f"[RESUME_SCORE] Access denied for user: {current_user.id} - {e.detail}"
+        )
         raise e
     except Exception as e:
-        logger.error(f"[RESUME_SCORE] Unexpected error scoring resume for user: {current_user.id} - {str(e)}")
+        logger.error(
+            f"[RESUME_SCORE] Unexpected error scoring resume for user: {current_user.id} - {str(e)}"
+        )
         raise HTTPException(status_code=500, detail="Error processing resume score")
