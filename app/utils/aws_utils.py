@@ -10,6 +10,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, BotoCoreError
 from app.core.config import settings
 
+logger = logging.getLogger("app")
 queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
 
 from boto3.s3.transfer import TransferConfig
@@ -60,9 +61,14 @@ def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
             s3_path,
             ExtraArgs={"ContentType": file.content_type},
         )
+        logger.info(f"[S3_UPLOAD] Uploaded resume to: {s3_path}")
         return f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/{s3_path}"
     except NoCredentialsError:
-        raise Exception("AWS credentials not found")
+        logger.error("[S3_UPLOAD] AWS credentials not found")
+        raise
+    except Exception as e:
+        logger.error(f"[S3_UPLOAD] Upload failed: {e}", exc_info=True)
+        raise
 
 
 def generate_presigned_url(s3_url, expiration=3600):
@@ -76,9 +82,10 @@ def generate_presigned_url(s3_url, expiration=3600):
             Params={"Bucket": bucket_name, "Key": key},
             ExpiresIn=expiration,
         )
+        logger.info(f"[S3_SIGNED_URL] Generated signed URL for: {key}")
         return presigned_url
     except Exception as e:
-        print(f"Error generating pre-signed URL: {str(e)}")
+        logger.error(f"[S3_SIGNED_URL] Error generating signed URL: {e}", exc_info=True)
         return None
 
 
@@ -92,12 +99,13 @@ def delete_resume_from_s3(s3_url: str):
 
         # ✅ Delete from S3
         s3_client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=s3_file_key)
-        print(f"Deleted from S3: {s3_file_key}")
-
+        logger.info(f"[S3_DELETE] Deleted: {s3_file_key}")
     except NoCredentialsError:
-        raise Exception("AWS credentials not found")
+        logger.error("[S3_DELETE] AWS credentials not found")
+        raise
     except ClientError as e:
-        print(f"S3 Deletion Failed: {e}")
+        logger.error(f"[S3_DELETE] Client error: {e}", exc_info=True)
+        raise
 
 
 def download_resume_from_s3(s3_url: str):
@@ -109,7 +117,7 @@ def download_resume_from_s3(s3_url: str):
             f"https://{bucket_name}.s3.amazonaws.com/", ""
         )  # Removes leading slash
         # 🔹 Debugging: Ensure correct S3 key extraction
-        print(f"🔍 Extracted S3 Key: {file_key}")
+        logger.info(f"[S3_DOWNLOAD] Fetching: {file_key}")
         # ✅ Check if file exists before downloading
         s3_client.head_object(Bucket=bucket_name, Key=file_key)
         # ✅ Download file as a BytesIO object
@@ -118,25 +126,29 @@ def download_resume_from_s3(s3_url: str):
         file_obj.seek(0)  # Reset pointer to the beginning
         return file_obj
     except NoCredentialsError:
-        print("AWS credentials not found")
-        raise Exception("AWS credentials not found")
-
+        logger.error("[S3_DOWNLOAD] AWS credentials not found")
+        raise
     except ClientError as e:
-        print(f"S3 Client Error: {str(e)}")
         if e.response["Error"]["Code"] == "404":
+            logger.warning(f"[S3_DOWNLOAD] File not found: {file_key}")
             raise Exception("File not found in S3")
-        raise Exception(f"S3 Error: {str(e)}")
-
+        logger.error(f"[S3_DOWNLOAD] Client error: {e}", exc_info=True)
+        raise
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        raise Exception(f"Error downloading resume from S3: {str(e)}")
+        logger.error(f"[S3_DOWNLOAD] Unexpected error: {e}", exc_info=True)
+        raise
 
 
 def get_file_extension_from_s3_url(s3_url):
-    bucket_name = settings.S3_BUCKET_NAME
-    key = s3_url.split(f"https://{bucket_name}.s3.amazonaws.com/")[-1]
-    file_extension = key.split(".")[-1]
-    return file_extension
+    try:
+        bucket_name = settings.S3_BUCKET_NAME
+        key = s3_url.split(f"https://{bucket_name}.s3.amazonaws.com/")[-1]
+        file_extension = key.split(".")[-1]
+        logger.info(f"[S3_FILE_EXT] Extracted file extension '{file_extension}' from key: {key}")
+        return file_extension
+    except Exception as e:
+        logger.error(f"[S3_FILE_EXT] Failed to extract file extension from URL: {s3_url} | Error: {e}", exc_info=True)
+        raise
 
 
 def transcribe_audio(s3_url: str) -> str:
@@ -153,9 +165,8 @@ def transcribe_audio(s3_url: str) -> str:
         job_name = f"transcription-{int(time.time())}"  # Unique job name
         media_format = s3_url.split(".")[-1]  # Extract file format (mp3, wav, etc.)
         bucket_name = settings.S3_BUCKET_NAME
-        queue_logger.info(
-            f"Fetching audio from bucket: {bucket_name} in region: {settings.AWS_REGION_NAME} to create job: {job_name}"
-        )
+        queue_logger.info(f"[TRANSCRIBE] Starting job: {job_name}, format: {media_format}")
+
         queue_logger.info(f"Media format: {media_format} from s3 url: {s3_url}")
 
         # Start transcription job
@@ -191,22 +202,28 @@ def transcribe_audio(s3_url: str) -> str:
             s3_client.delete_object(Bucket=bucket_name, Key=f"{job_name}.json")
             # ✅ Delete the transcription job from AWS Transcribe
             transcribe_client.delete_transcription_job(TranscriptionJobName=job_name)
-
-            queue_logger.info(f"Got transcript: {transcript_text}")
+            queue_logger.info(f"[TRANSCRIBE] Transcription complete: {transcript_text}")
             return transcript_text
 
+        queue_logger.warning("[TRANSCRIBE] Transcription failed or incomplete")
         return "Transcription failed or incomplete."
 
     except (BotoCoreError, NoCredentialsError) as e:
-        raise Exception(f"AWS Transcribe error: {str(e)}")
+        queue_logger.error(f"[TRANSCRIBE] AWS error: {e}", exc_info=True)
+        raise
 
 
 def send_to_mock_interview_queue(payload: dict):
-    response = sqs_client.send_message(
-        QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL, MessageBody=json.dumps(payload)
-    )
-    queue_logger.info(f"sending processing task to sqs. got response: {response}")
-    return response
+    try:
+        response = sqs_client.send_message(
+            QueueUrl=settings.SQS_MOCK_INTERVIEW_QUEUE_URL,
+            MessageBody=json.dumps(payload),
+        )
+        queue_logger.info(f"[SQS] Task queued successfully: {response}")
+        return response
+    except Exception as e:
+        queue_logger.error(f"[SQS] Failed to send message: {e}", exc_info=True)
+        raise
 
 
 def upload_audio_to_s3_sync(
@@ -227,12 +244,14 @@ def upload_audio_to_s3_sync(
             ExtraArgs={"ContentType": content_type},
             Config=transfer_config,
         )
+        logger.info(f"[AUDIO_UPLOAD] Uploaded audio to: {file_key}")
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
-        raise Exception("AWS credentials not found")
+        logger.error("[AUDIO_UPLOAD] AWS credentials not found")
+        raise
     except Exception as e:
-        raise Exception(f"Error uploading audio to S3: {str(e)}")
-
+        logger.error(f"[AUDIO_UPLOAD] Upload failed: {e}", exc_info=True)
+        raise
 
 def upload_mock_interview_data(
     user_id: str, session_id: str, filename: str, data: dict | list
@@ -246,11 +265,14 @@ def upload_mock_interview_data(
             Body=json.dumps(data),
             ContentType="application/json",
         )
+        logger.info(f"[MOCK_DATA_UPLOAD] Uploaded mock data: {file_key}")
         return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
     except NoCredentialsError:
-        raise Exception("AWS credentials not found")
+        logger.error("[MOCK_DATA_UPLOAD] AWS credentials not found")
+        raise
     except Exception as e:
-        raise Exception(f"Error uploading json to S3: {str(e)}")
+        logger.error(f"[MOCK_DATA_UPLOAD] Failed to upload: {e}", exc_info=True)
+        raise
 
 
 def fetch_mock_interview_data(s3_url: str) -> dict | list:
@@ -264,9 +286,11 @@ def fetch_mock_interview_data(s3_url: str) -> dict | list:
         dict | list: Parsed JSON content.
     """
     bucket_name = settings.S3_BUCKET_NAME
+    if not s3_url:
+        logger.warning("[MOCK_DATA_FETCH] Empty S3 URL provided")
+        return {}
+
     try:
-        if not s3_url:
-            return ""
         # Parse the S3 URL
         parsed = urlparse(s3_url)
         file_key = parsed.path.lstrip("/")
@@ -275,12 +299,13 @@ def fetch_mock_interview_data(s3_url: str) -> dict | list:
         try:
             s3_client.head_object(Bucket=bucket_name, Key=file_key)
         except ClientError:
-            return ""
+            logger.warning(f"[MOCK_DATA_FETCH] File not found: {s3_url}")
+            return {}
 
         obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
         content = obj["Body"].read().decode("utf-8")
+        logger.info(f"[MOCK_DATA_FETCH] Successfully fetched: {file_key}")
         return json.loads(content)
-    except NoCredentialsError:
-        raise Exception("AWS credentials not found")
     except Exception as e:
-        raise Exception(f"Error fetching JSON from S3: {str(e)}")
+        logger.error(f"[MOCK_DATA_FETCH] Failed to fetch or parse: {e}", exc_info=True)
+        raise

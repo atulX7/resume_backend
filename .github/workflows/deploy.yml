@@ -98,8 +98,8 @@ jobs:
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
           ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
           MOCK_DATA=${{ vars.MOCK_DATA }}
-          CELERY_BROKER_URL=${{ secrets.CELERY_BROKER_URL }}
-          CELERY_BACKEND_URL=${{ secrets.CELERY_BACKEND_URL }}
+          SQS_MOCK_INTERVIEW_QUEUE_URL=${{ vars.SQS_MOCK_INTERVIEW_QUEUE_URL }}
+          SEED_DB=${{ vars.SEED_DB }}
           EOF
           echo "✅ .env file created."
 

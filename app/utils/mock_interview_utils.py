@@ -1,17 +1,22 @@
 import json
+import logging
 
 from sqlalchemy.orm import Session
 
 from app.database.auth import get_user_by_id
 from app.utils.aws_utils import generate_presigned_url
+from app.utils.constants import EMAIL_SUB, EMAIL_BODY
 from app.utils.email_utils import send_email
 from app.utils.openai_client import call_openai
 from app.utils.prompts import INTERVIEW_EVALUATION_PROMPT
 from app.utils.utils import parse_ai_response, calculate_interview_duration
 
+logger = logging.getLogger("app")
+queue_logger = logging.getLogger("sqs")
 
 def format_skipped_question(question):
     """Returns a default response for skipped questions."""
+    logger.warning(f"⚠️ No audio found for question_id: {question['question_id']}")
     return {
         "question_id": question["question_id"],
         "question": question["question"],
@@ -24,16 +29,19 @@ def format_skipped_question(question):
 
 def get_openai_interview_evaluation(job_title: str, interview_log: list[dict[str, any]]):
     """Calls OpenAI once to evaluate all answers and provide interview-level assessment."""
+    logger.info(f"📡 Calling OpenAI for interview evaluation for job: {job_title}")
     prompt = INTERVIEW_EVALUATION_PROMPT.format(
         job_title=job_title,
         interview_log=json.dumps(interview_log, indent=2)
     )
     response = call_openai(prompt)
+    logger.info("✅ Received evaluation response from OpenAI")
     return response
 
 
 def process_ai_response(ai_response_json: str, interview_log: list[dict[str, any]]):
     """Parses OpenAI response and maps it to evaluation results."""
+    logger.info("🧠 Parsing AI interview evaluation response")
     ai_data = parse_ai_response(ai_response_json)
 
     evaluation_results = []
@@ -51,28 +59,28 @@ def process_ai_response(ai_response_json: str, interview_log: list[dict[str, any
         })
 
     final_evaluation = ai_data.get("final_assessment", {})
+    logger.info("✅ Finished processing AI evaluation results")
     return evaluation_results, final_evaluation
 
 
 async def send_interview_result_email(db: Session, user_id: str, session, final_evaluation):
     """Sends an email notification to the candidate with the interview results."""
-    user = get_user_by_id(db, user_id)
+    queue_logger.info(f"📧 Preparing to send interview result email for user: {user_id}")
+    try:
+        user = get_user_by_id(db, user_id)
 
-    email_subject = "📢 Your Mock Interview Results Are Available!"
-    email_body = f"""
-    Hi {user.name},
+        email_subject = EMAIL_SUB
+        email_body = EMAIL_BODY.format(
+            user_name=user.name,
+            job_title=session.job_title,
+            score=final_evaluation.get("overall_score", 0.0),
+            strengths=", ".join(final_evaluation.get("key_strengths", [])),
+            growth_areas=", ".join(final_evaluation.get("areas_for_growth", [])),
+            duration=calculate_interview_duration(session.created_at),
+            session_id=session.id,
+        )
 
-    Your mock interview session for **{session.job_title}** has been evaluated. 
-
-    - 🏆 **Overall Score:** {final_evaluation.get("overall_score", 0.0)}/10
-    - 📊 **Key Strengths:** {", ".join(final_evaluation.get("key_strengths", []))}
-    - 📌 **Areas for Growth:** {", ".join(final_evaluation.get("areas_for_growth", []))}
-    - ⏳ **Duration:** {calculate_interview_duration(session.created_at)} minutes
-
-    You can view your results here: [View Results](http://yourfrontend.com/interview/{session.id})
-
-    Regards,  
-    Mock Interview AI Team
-    """
-
-    await send_email(user.email, email_subject, email_body)
+        await send_email(user.email, email_subject, email_body)
+        logger.info(f"✅ Interview results email sent to user: {user.email}")
+    except Exception as e:
+        logger.error(f"❌ Failed to send interview results email to user {user_id}: {e}", exc_info=True)

@@ -1,3 +1,4 @@
+import logging
 import smtplib
 from app.core.config import settings
 from email.mime.text import MIMEText
@@ -10,9 +11,12 @@ SMTP_PASSWORD = settings.SMTP_PASSWORD
 FROM_EMAIL = settings.FROM_EMAIL
 USE_SSL = SMTP_PORT == 465
 
+queue_logger = logging.getLogger("sqs")
 
 async def send_email(to_email: str, subject: str, message: str):
     """Sends an email notification to the user."""
+    queue_logger.info(f"📤 Preparing to send email to: {to_email} with subject: '{subject}'")
+
     try:
         msg = MIMEMultipart()
         msg["From"] = FROM_EMAIL
@@ -22,9 +26,11 @@ async def send_email(to_email: str, subject: str, message: str):
 
         if USE_SSL:
             # ✅ Use Implicit TLS (Port 465)
+            queue_logger.info(f"Using SMTP_SSL for server: {SMTP_SERVER}:{SMTP_PORT}")
             server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
         else:
             # ✅ Use STARTTLS (Port 587)
+            queue_logger.info(f"Using STARTTLS for server: {SMTP_SERVER}:{SMTP_PORT}")
             server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
             server.starttls()
 
@@ -32,6 +38,8 @@ async def send_email(to_email: str, subject: str, message: str):
         server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         server.quit()
 
-        print(f"✅ Email sent successfully to {to_email}")
+        queue_logger.info(f"✅ Email sent successfully to {to_email}")
+    except smtplib.SMTPException as e:
+        queue_logger.error(f"❌ SMTP error occurred while sending email to {to_email}: {e}", exc_info=True)
     except Exception as e:
-        print(f"❌ Failed to send email to {to_email}: {str(e)}")
+        queue_logger.error(f"❌ Unexpected error while sending email to {to_email}: {e}", exc_info=True)

@@ -6,7 +6,10 @@ from fastapi import UploadFile
 import logging
 
 from app.core.config import settings
-from app.utils.constants import MAX_QUESTIONS_PER_SESSION, INTRO_QUESTION
+from app.utils.constants import MAX_QUESTIONS_PER_SESSION, INTRO_QUESTION, MOCK_INTERVIEW_PREV_Q_FILE, \
+    MOCK_INTERVIEW_PREV_JD_FILE, MOCK_INTERVIEW_AI_FEEDBACK_FILE, MOCK_INTERVIEW_LOG_FILE
+from app.utils.mock_data import MOCK_INTERVIEW_QUESTIONS_RESPONSE, MOCK_RESUME_S3_URL, MOCK_JD_S3_URL, \
+    MOCK_PREV_QUESTIONS_S3_URL, MOCK_AUDIO_S3_URL, MOCK_AUDIO_TRANSCRIPTION_TEXT, MOCK_INTERVIEW_EVALUATION_RESPONSE
 from app.utils.mock_interview_utils import (
     format_skipped_question,
     get_openai_interview_evaluation,
@@ -38,6 +41,7 @@ from concurrent.futures import ThreadPoolExecutor
 executor = ThreadPoolExecutor(max_workers=10)  # Match max_concurrency
 
 queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
+logger = logging.getLogger("app")
 
 
 async def upload_audio_to_s3_async(*args, **kwargs):
@@ -56,86 +60,68 @@ def start_mock_interview(
 ):
     """Starts a new mock interview session by storing resume and initializing the interview."""
     session_id = str(uuid.uuid4())
-    if settings.MOCK_DATA:
-        ai_response = """
-                {
-              "questions" : [ "Can you elaborate on a project where you had to migrate infrastructure to Google Cloud and how you ensured the transition was seamless?"]
-            }
-                """
-    else:
-        # ✅ Extract resume text from S3
-        resume_text = extract_resume_text(resume_file)
-
-        # ✅ Generate remaining 19 questions in one API call
-        prompt = INTERVIEW_QUESTION_PROMPT.format(
-            max_questions=MAX_QUESTIONS_PER_SESSION,
-            resume_text=resume_text,
-            job_title=job_title,
-            job_description=job_description,
-        )
-        ai_response = call_openai(prompt)
-
+    logger.info(f"[MOCK START] Starting interview for user: {user_id}, job: {job_title}, session: {session_id}")
     try:
+        if settings.MOCK_DATA:
+            logger.info("Using mock data for questions.")
+            ai_response = MOCK_INTERVIEW_QUESTIONS_RESPONSE
+        else:
+            resume_text = extract_resume_text(resume_file)
+            prompt = INTERVIEW_QUESTION_PROMPT.format(
+                max_questions=MAX_QUESTIONS_PER_SESSION,
+                resume_text=resume_text,
+                job_title=job_title,
+                job_description=job_description,
+            )
+            ai_response = call_openai(prompt)
+
         generated_questions = parse_ai_response(ai_response)["questions"]
-    except json.JSONDecodeError:
-        return {"error": "Failed to parse AI response"}
-    # ✅ Combine all questions
-    all_questions = [INTRO_QUESTION] + generated_questions[:MAX_QUESTIONS_PER_SESSION]
+        all_questions = [INTRO_QUESTION] + generated_questions[:MAX_QUESTIONS_PER_SESSION]
 
-    # ✅ Assign structured question IDs
-    questions_with_ids = []
-    for counter, question in enumerate(all_questions, start=1):
-        question_id = generate_question_id(
-            user_id, session_id, counter
-        )  # Unique identifier
-        questions_with_ids.append({"question_id": question_id, "question": question})
+        questions_with_ids = []
+        for counter, question in enumerate(all_questions, start=1):
+            question_id = generate_question_id(user_id, session_id, counter)
+            questions_with_ids.append({"question_id": question_id, "question": question})
 
-    if settings.MOCK_DATA:
-        resume_s3_url = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/resume.pdf"
-        jd_s3_url = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/job_description.json"
-        prev_question_s3_url = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/previous_questions.json"
-    else:
-        # ✅ Upload details to s3
-        prev_question_s3_url = upload_mock_interview_data(
-            user_id, session_id, "previous_questions.json", questions_with_ids
-        )
-        resume_s3_url = upload_resume_to_s3(resume_file, user_id, session_id)
-        jd_json = {"jd": job_description}
-        jd_s3_url = upload_mock_interview_data(
-            user_id, session_id, "job_description.json", jd_json
-        )
+        if settings.MOCK_DATA:
+            resume_s3_url = MOCK_RESUME_S3_URL
+            jd_s3_url = MOCK_JD_S3_URL
+            prev_question_s3_url = MOCK_PREV_QUESTIONS_S3_URL
+        else:
+            prev_question_s3_url = upload_mock_interview_data(user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE,
+                                                              questions_with_ids)
+            resume_s3_url = upload_resume_to_s3(resume_file, user_id, session_id)
+            jd_json = {"jd": job_description}
+            jd_s3_url = upload_mock_interview_data(user_id, session_id, MOCK_INTERVIEW_PREV_JD_FILE, jd_json)
 
-    # ✅ Create a new session
-    create_mock_interview_session(
-        db,
-        session_id,
-        user_id,
-        job_title,
-        jd_s3_url,
-        resume_s3_url,
-        prev_question_s3_url,
-    )
+        create_mock_interview_session(db, session_id, user_id, job_title, jd_s3_url, resume_s3_url,
+                                      prev_question_s3_url)
+        logger.info(f"✅ Mock interview session created: {session_id}")
+        return {"session_id": session_id, "questions": questions_with_ids}
 
-    return {"session_id": session_id, "questions": questions_with_ids}
+    except Exception as e:
+        logger.error(f"❌ Failed to start mock interview for user: {user_id}, Error: {str(e)}")
+        raise
 
 
 async def get_audio_file_map(user_id, session_id, audio_files):
-    if settings.MOCK_DATA:
-        mock_url = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3"
-        return {file.filename: mock_url for file in audio_files}
+    try:
+        if settings.MOCK_DATA:
+            return {file.filename: MOCK_AUDIO_S3_URL for file in audio_files}
 
-    upload_tasks = []
-    for file in audio_files:
-        content = await file.read()
-        upload_tasks.append(
-            upload_audio_to_s3_async(
-                content, user_id, session_id, file.filename, file.content_type
+        upload_tasks = []
+        for file in audio_files:
+            content = await file.read()
+            upload_tasks.append(
+                upload_audio_to_s3_async(
+                    content, user_id, session_id, file.filename, file.content_type
+                )
             )
-        )
-
-    s3_urls = await asyncio.gather(*upload_tasks)
-
-    return {file.filename: url for file, url in zip(audio_files, s3_urls)}
+        audio_s3_urls = await asyncio.gather(*upload_tasks)
+        return {file.filename: url for file, url in zip(audio_files, audio_s3_urls)}
+    except Exception as e:
+        logger.error(f"❌ Error uploading audio files for session: {session_id}, Error: {str(e)}")
+        raise
 
 
 async def process_mock_interview(
@@ -147,26 +133,16 @@ async def process_mock_interview(
 ):
     """Processes all answers, evaluates them, and generates final interview results."""
     session_status = "failed"
-    evaluation_results_s3 = ""
-    final_evaluation_s3 = ""
+    interview_log_s3_url = ""
+    ai_feedback_s3_url = ""
     try:
-        if not session_id:
-            queue_logger.info("❌ Missing session_id")
-            return
-
-        queue_logger.info(
-            f"Started processing mock interview for user id: {user_id} for mock interview id: {session_id}"
-        )
-        queue_logger.info(f"Mock data: {settings.MOCK_DATA}")
+        queue_logger.info(f"[PROCESS START] user: {user_id}, session: {session_id}")
         session = get_mock_interview_session(db, session_id)
         if not session:
-            queue_logger.info(f"❌ Session {session_id} not found")
+            queue_logger.warning(f"❌ Session {session_id} not found")
             return
 
         interview_log = []
-
-        queue_logger.info(f"Session {session_id} found")
-        # ✅ Step 1: Process Transcriptions
         previous_questions = fetch_mock_interview_data(
             session.previous_questions_s3_url
         )
@@ -178,7 +154,7 @@ async def process_mock_interview(
             )
 
             if not audio_filename or audio_filename not in audio_file_map:
-                queue_logger.info(f"No audio found for question id: {question_id}")
+                queue_logger.warning(f"⚠️ Missing audio for question: {question_id}")
                 interview_log.append(format_skipped_question(question))
                 continue
 
@@ -186,9 +162,9 @@ async def process_mock_interview(
             queue_logger.info(f"Got audio url: {audio_s3_url}")
             if settings.MOCK_DATA:
                 queue_logger.info("Returning mock data")
-                transcription_text = "Scenario based questions in any technical interview are asked to assess the depth of your knowledge. So whenever you get a scenario based question, don't jump to the answer. Try to assess the situation. They are basically trying to differentiate you from other people. They are also trying to understand, do you really have production like uh experience in your resume. So they they want to throw a random scenario at you. Probably that has something happened in their area or that they have experienced themselves. They want to assess what options you will be performing, what activities you will be performing in such a scenario. So start before you start answering the question. Try to assess, try to understand what was the situation, what sort of services they use, what was the scenario. Get more details about the question, and then start framing your answer. That will help you score better in these kind of questions."
+                transcription_text = MOCK_AUDIO_TRANSCRIPTION_TEXT
             else:
-                queue_logger.info("Transcribing audio")
+                queue_logger.info(f"Transcribing audio: {audio_s3_url}")
                 transcription_text = transcribe_audio(audio_s3_url)
 
             interview_log.append(
@@ -201,42 +177,7 @@ async def process_mock_interview(
             )
 
         if settings.MOCK_DATA:
-            ai_response_json = """
-                {
-                "question_evaluations": {
-                    "3102c45b-7252d078-1": {
-                        "score": 2,
-                        "feedback": "The candidate failed to provide an introduction or share any relevant career experiences, instead offering advice on how to approach scenario-based interview questions. This response did not fulfill the question’s request for personal career insights and achievements.",
-                        "follow_up_question": "Could you please share more about your career background and some key achievements you've had in your previous roles?"
-                    },
-                    "3102c45b-7252d078-2": {
-                        "score": 1,
-                        "feedback": "The candidate repeated the same response from the first question, failing to provide any details about a project involving the migration of infrastructure to Google Cloud. This lack of a specific answer did not demonstrate any relevant experience or knowledge of cloud migration, which was crucial for this question.",
-                        "follow_up_question": "Can you describe a specific project where you successfully migrated an infrastructure to the cloud, detailing the steps you took and the challenges you overcame?"
-                    }
-                },
-                "final_assessment": {
-                    "overall_score": 2,
-                    "key_strengths": [
-                     "The candidate attempted to discuss the importance of scenario-based questions, which indicates an understanding of the interview process and possibly a strategic approach to answering questions."
-                 ],
-                    "areas_for_growth": [
-                        "The candidate needs to provide direct answers that are specific to the questions asked.",
-                        "Improved structure and clarity in responses would be beneficial.",
-                        "Sharing personal experiences and achievements relevant to the role is crucial."
-                    ],
-                    "skill_assessment": {
-                        "technical": 1,
-                        "problem_solving": 2,
-                        "communication": 1,
-                        "leadership": 1,
-                        "adaptability": 1,
-                        "behavioral_fit": 1,
-                        "confidence": 2
-                    }
-                }
-            }
-                """
+            ai_response_json = MOCK_INTERVIEW_EVALUATION_RESPONSE
         else:
             # ✅ Step 2: Call OpenAI once for **all** questions
             ai_response_json = get_openai_interview_evaluation(
@@ -250,30 +191,26 @@ async def process_mock_interview(
 
         # ✅ Step 4: update interview evaluation data
         session_status = "completed"
-        evaluation_results_s3 = upload_mock_interview_data(
-            user_id, session.id, "interview_log.json", evaluation_results
+        interview_log_s3_url = upload_mock_interview_data(
+            user_id, session.id, MOCK_INTERVIEW_LOG_FILE, evaluation_results
         )
-        final_evaluation_s3 = upload_mock_interview_data(
-            user_id, session.id, "ai_feedback.json", final_evaluation
+        ai_feedback_s3_url = upload_mock_interview_data(
+            user_id, session.id, MOCK_INTERVIEW_AI_FEEDBACK_FILE, final_evaluation
         )
 
         # ✅ Step 5: Send email notification to user
         await send_interview_result_email(db, user_id, session, final_evaluation)
-        queue_logger.info(
-            f"Completed processing mock interview for user id: {user_id} for mock interview id: {session_id}"
-        )
+        queue_logger.info(f"✅ Finished processing session: {session_id}")
     except Exception as e:
         queue_logger.info(
-            f"❌ Error processing mock interview session {session_id}: {e}"
+            f"❌ Error processing mock interview session {session_id}: {str(e)}"
         )
-
-    save_interview_results(
-        db, session, user_id, evaluation_results_s3, final_evaluation_s3, session_status
-    )
+    save_interview_results(db, session, interview_log_s3_url, ai_feedback_s3_url, session_status)
 
 
 def get_mock_interview_sessions_for_user(db: Session, user_id: str):
     """Fetches all mock interview sessions for a given user."""
+    logger.info(f"📥 Fetching all sessions for user: {user_id}")
     sessions = get_mock_interview_sessions_by_user(db, user_id)
 
     return [
@@ -289,9 +226,10 @@ def get_mock_interview_sessions_for_user(db: Session, user_id: str):
 
 def get_mock_interview_session_details(db: Session, session_id: str):
     """Fetches detailed information about a specific mock interview session."""
+    logger.info(f"📥 Fetching session details for session: {session_id}")
     session = get_mock_interview_session(db, session_id)
-
     if not session:
+        logger.error(f"❌ Session {session_id} not found")
         raise Exception(f"Session {session_id} not found")
 
     interview_log = fetch_mock_interview_data(session.interview_log_s3_url)

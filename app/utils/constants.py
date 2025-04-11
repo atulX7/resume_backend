@@ -8,3 +8,25 @@ FEATURE_RESUME_EVAL = "resume_eval"
 FEATURE_RESUME_TAILOR = "resume_tailor"
 
 FREE_PLAN_CODE = "free"
+
+MOCK_INTERVIEW_PREV_Q_FILE = "previous_questions.json"
+MOCK_INTERVIEW_PREV_JD_FILE = "job_description.json"
+MOCK_INTERVIEW_LOG_FILE = "interview_log.json"
+MOCK_INTERVIEW_AI_FEEDBACK_FILE = "ai_feedback.json"
+
+EMAIL_SUB = "📢 Your Mock Interview Results Are Available!"
+EMAIL_BODY= """
+Hi {user_name},
+
+Your mock interview session for **{job_title}** has been evaluated.
+
+- 🏆 **Overall Score:** {score}/10
+- 📊 **Key Strengths:** {strengths}
+- 📌 **Areas for Growth:** {growth_areas}
+- ⏳ **Duration:** {duration} minutes
+
+You can view your results here: [View Results](http://yourfrontend.com/interview/{session_id})
+
+Regards,  
+ResuWin Team
+"""

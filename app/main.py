@@ -63,9 +63,14 @@ app.include_router(
 )
 app.include_router(plans.router, prefix="/plans", tags=["Plans"])
 
-# ✅ Run database seeder at startup
-with SessionLocal() as db:
-    initialize_db(db)
+
+# ✅ Run database seeder at startup only if SEED_DB is True
+if settings.SEED_DB:
+    logger.info("🌱 Seeding DB based on SEED_DB=True...")
+    with SessionLocal() as db:
+        initialize_db(db)
+else:
+    logger.info("🛑 Skipping DB seeding (SEED_DB is False)")
 
 
 @app.get("/")

@@ -190,3 +190,18 @@ You are an expert interview evaluator. Analyze a candidate’s responses for the
     }}
 }}
 """
+
+COVER_LETTER_PROMPT = """
+You are a professional career consultant. Generate a formal, well-structured cover letter for the following job:
+
+Job Title: {job_title}
+Company: {company_name}
+
+Job Description:
+{job_description}
+
+Candidate Resume:
+{user_resume}
+
+Ensure the cover letter is personalized, engaging, and aligned with the job description.
+"""

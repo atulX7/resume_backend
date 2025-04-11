@@ -1,29 +1,38 @@
 import json
+import logging
 import re
 from datetime import timezone, datetime
 
+logger = logging.getLogger("app")
+
 
 def generate_question_id(user_id: str, session_id: str, counter: int):
-    return f"{user_id[:8]}-{session_id[:8]}-{counter}"
+    question_id = f"{user_id[:8]}-{session_id[:8]}-{counter}"
+    logger.info(f"🆔 Generated question ID: {question_id}")
+    return question_id
 
 
 def parse_ai_response(ai_response):
     """Parses AI response handling cases with Markdown formatting, JSON-as-string, or empty response."""
     try:
-        # ✅ Ensure AI response is not empty or null
         if not ai_response or ai_response.strip() == "":
+            logger.warning("Empty or null AI response received.")
             return {}
 
-        # ✅ Remove Markdown-like formatting (```json ... ```)
         clean_response = re.sub(r"```json|```", "", ai_response).strip()
         parsed_response = json.loads(clean_response)
+        logger.info("Successfully parsed AI response.")
         return parsed_response
 
     except json.JSONDecodeError as e:
-        print(f"⚠️ JSONDecodeError: {str(e)}. AI response was:\n{ai_response}")
+        logger.error(f"JSONDecodeError while parsing AI response: {str(e)}")
+        logger.warning(f"Raw AI response that caused error: {ai_response}")
+        return {}
 
     except ValueError as e:
-        print(f"⚠️ ValueError: {str(e)}. AI response was:\n{ai_response}")
+        logger.error(f"ValueError while parsing AI response: {str(e)}")
+        logger.warning(f"Raw AI response that caused error: {ai_response}")
+        return {}
 
 
 def calculate_interview_duration(start_time: datetime) -> float:
@@ -33,17 +42,13 @@ def calculate_interview_duration(start_time: datetime) -> float:
     :param start_time: The interview start time (can be timezone-aware or naive).
     :return: Duration of the interview in minutes.
     """
-    if start_time.tzinfo is None:
-        # ✅ If tzinfo is None, assume it's UTC but store properly
-        start_time = start_time.replace(tzinfo=timezone.utc)
-    elif start_time.tzinfo != timezone.utc:
-        # ✅ Convert non-UTC timezones to UTC
-        start_time = start_time.astimezone(timezone.utc)
+    logger.info(f"Calculating interview duration from UTC timestamp: {start_time}")
+    try:
+        current_time = datetime.now(timezone.utc)
+        duration_in_minutes = round((current_time - start_time).total_seconds() / 60, 2)
 
-    # ✅ Get the current time in UTC
-    current_time = datetime.now(timezone.utc)
-
-    # ✅ Compute the duration in minutes
-    duration_in_minutes = round((current_time - start_time).total_seconds() / 60, 2)
-
-    return duration_in_minutes
+        logger.info(f"Interview duration: {duration_in_minutes} minutes")
+        return duration_in_minutes
+    except Exception as e:
+        logger.error(f"Failed to calculate interview duration: {str(e)}")
+        return 0.0
