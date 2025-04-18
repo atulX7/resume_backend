@@ -5,7 +5,7 @@ import boto3
 import json
 
 from app.core.logging import setup_logging
-from app.services.mock_interview_service import process_mock_interview
+from app.services.mock_interview_service import process_mock_interview_worker
 from app.database.connection import SessionLocal  # or your actual db init
 from app.core.config import settings
 
@@ -43,21 +43,16 @@ def poll_sqs():
                 try:
                     queue_logger.info(f"✅ Received message: {message['MessageId']}")
                     body = json.loads(message["Body"])
-
-                    queue_logger.info(f"👤 User ID: {body.get('user_id')}")
-                    queue_logger.info(f"🎯 Session ID: {body.get('session_id')}")
-                    queue_logger.info(f"📦 Full message body: {body}")
+                    queue_logger.info(f"📦 Message body: {body}")
 
                     db = SessionLocal()
 
                     queue_logger.info("⚙️ Starting mock interview processing...")
                     asyncio.run(
-                        process_mock_interview(
+                        process_mock_interview_worker(
                             db=db,
                             user_id=body["user_id"],
                             session_id=body["session_id"],
-                            question_audio_map=body["question_audio_map"],
-                            audio_file_map=body["audio_file_map"],
                         )
                     )
                     queue_logger.info("✅ Finished processing mock interview.")

@@ -10,8 +10,8 @@ class Resume(Base):
     id = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
-    s3_url = Column(String, nullable=False)  # S3 Storage Path
-    resume_data = Column(
+    resume_storage_key = Column(String)  # Storage file key
+    resume_metadata = Column(
         JSONB, nullable=True, default={}
     )  # Stores structured resume details (name, skills, etc.)
     created_at = Column(

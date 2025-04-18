@@ -62,7 +62,7 @@ def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
             ExtraArgs={"ContentType": file.content_type},
         )
         logger.info(f"[S3_UPLOAD] Uploaded resume to: {s3_path}")
-        return f"https://{settings.S3_BUCKET_NAME}.s3.amazonaws.com/{s3_path}"
+        return s3_path
     except NoCredentialsError:
         logger.error("[S3_UPLOAD] AWS credentials not found")
         raise
@@ -71,22 +71,35 @@ def upload_resume_to_s3(file: UploadFile, user_id: str, session_id: str = None):
         raise
 
 
-def generate_presigned_url(s3_url, expiration=3600):
-    """Generates a pre-signed URL for secure audio access."""
-    bucket_name = settings.S3_BUCKET_NAME
-    key = s3_url.split(f"https://{bucket_name}.s3.amazonaws.com/")[-1]
+def generate_presigned_url(file_key: str, expiration: int = 3600) -> str:
+    """
+    Generates a presigned URL for a given file key in the configured S3 bucket.
 
+    Args:
+        file_key (str): The relative file key (e.g., "user123/mock_interviews/session456/audio/answer.wav").
+        expiration (int): The expiration time in seconds for this URL. The default is 3600 seconds (1 hour).
+
+    Returns:
+        str: A presigned URL to access the file.
+
+    Raises:
+        Exception: If there is an error generating the presigned URL.
+    """
+    bucket_name = settings.S3_BUCKET_NAME
     try:
-        presigned_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket_name, "Key": key},
-            ExpiresIn=expiration,
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': file_key},
+            ExpiresIn=expiration
         )
-        logger.info(f"[S3_SIGNED_URL] Generated signed URL for: {key}")
-        return presigned_url
-    except Exception as e:
-        logger.error(f"[S3_SIGNED_URL] Error generating signed URL: {e}", exc_info=True)
-        return None
+        logger.info(f"[PRESIGNED_URL] Successfully generated presigned URL for key: {file_key}")
+        return url
+    except ClientError as ce:
+        logger.error(f"[PRESIGNED_URL] ClientError generating presigned URL for key {file_key}: {ce}", exc_info=True)
+        raise
+    except Exception as exc:
+        logger.error(f"[PRESIGNED_URL] Unexpected error for key {file_key}: {exc}", exc_info=True)
+        raise
 
 
 def delete_resume_from_s3(s3_url: str):
@@ -156,7 +169,7 @@ def get_file_extension_from_s3_url(s3_url):
         raise
 
 
-def transcribe_audio(s3_url: str) -> str:
+def transcribe_audio(file_key: str) -> str:
     """
     Transcribes an audio file stored in S3 using AWS Transcribe.
 
@@ -168,18 +181,18 @@ def transcribe_audio(s3_url: str) -> str:
     """
     try:
         job_name = f"transcription-{int(time.time())}"  # Unique job name
-        media_format = s3_url.split(".")[-1]  # Extract file format (mp3, wav, etc.)
+        media_format = file_key.split(".")[-1].lower()  # Extract file format (mp3, wav, etc.)
         bucket_name = settings.S3_BUCKET_NAME
         queue_logger.info(
             f"[TRANSCRIBE] Starting job: {job_name}, format: {media_format}"
         )
-
-        queue_logger.info(f"Media format: {media_format} from s3 url: {s3_url}")
+        s3_uri = f"s3://{bucket_name}/{file_key}"
+        queue_logger.info(f"Media format: {media_format} from s3 url: {s3_uri}")
 
         # Start transcription job
         transcribe_client.start_transcription_job(
             TranscriptionJobName=job_name,
-            Media={"MediaFileUri": s3_url},
+            Media={"MediaFileUri": s3_uri},
             MediaFormat=media_format,
             LanguageCode="en-US",
             OutputBucketName=bucket_name,  # Store result in S3
@@ -252,7 +265,7 @@ def upload_audio_to_s3_sync(
             Config=transfer_config,
         )
         logger.info(f"[AUDIO_UPLOAD] Uploaded audio to: {file_key}")
-        return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
+        return file_key
     except NoCredentialsError:
         logger.error("[AUDIO_UPLOAD] AWS credentials not found")
         raise
@@ -274,7 +287,7 @@ def upload_mock_interview_data(
             ContentType="application/json",
         )
         logger.info(f"[MOCK_DATA_UPLOAD] Uploaded mock data: {file_key}")
-        return f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
+        return file_key
     except NoCredentialsError:
         logger.error("[MOCK_DATA_UPLOAD] AWS credentials not found")
         raise
@@ -283,7 +296,7 @@ def upload_mock_interview_data(
         raise
 
 
-def fetch_mock_interview_data(s3_url: str) -> dict | list:
+def load_json_from_s3(file_key: str) -> dict | list:
     """
     Downloads and parses a JSON object from an S3 URL.
 
@@ -294,26 +307,22 @@ def fetch_mock_interview_data(s3_url: str) -> dict | list:
         dict | list: Parsed JSON content.
     """
     bucket_name = settings.S3_BUCKET_NAME
-    if not s3_url:
-        logger.warning("[MOCK_DATA_FETCH] Empty S3 URL provided")
+    if not file_key:
+        logger.warning("[LOAD_JSON_S3] Empty file key provided")
         return {}
 
     try:
-        # Parse the S3 URL
-        parsed = urlparse(s3_url)
-        file_key = parsed.path.lstrip("/")
-
-        # ✅ Check if object exists
+        # ✅ Check if object exists using the file key
         try:
             s3_client.head_object(Bucket=bucket_name, Key=file_key)
         except ClientError:
-            logger.warning(f"[MOCK_DATA_FETCH] File not found: {s3_url}")
+            logger.warning(f"[LOAD_JSON_S3] File not found for key: {file_key}")
             return {}
 
         obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
         content = obj["Body"].read().decode("utf-8")
-        logger.info(f"[MOCK_DATA_FETCH] Successfully fetched: {file_key}")
+        logger.info(f"[LOAD_JSON_S3] Successfully fetched: {file_key}")
         return json.loads(content)
     except Exception as e:
-        logger.error(f"[MOCK_DATA_FETCH] Failed to fetch or parse: {e}", exc_info=True)
+        logger.error(f"[LOAD_JSON_S3] Failed to fetch or parse: {e}", exc_info=True)
         raise

@@ -21,7 +21,7 @@ def format_skipped_question(question):
     return {
         "question_id": question["question_id"],
         "question": question["question"],
-        "audio_s3_url": "",
+        "audio_storage_key": "",
         "transcription": "",
         "score": 0.0,
         "feedback": "No response provided.",
@@ -49,11 +49,10 @@ def process_ai_response(ai_response_json: str, interview_log: list[dict[str, any
     for entry in interview_log:
         question_id = entry["question_id"]
         eval_data = ai_data["question_evaluations"].get(question_id, {})
-
         evaluation_results.append({
             "question_id": question_id,
             "question": entry["question"],
-            "audio_presigned_url": generate_presigned_url(entry["audio_s3_url"]) if entry["audio_s3_url"] else "",
+            "audio_presigned_url": generate_presigned_url(entry["audio_storage_key"]) if entry["audio_storage_key"] else "",
             "score": eval_data.get("score", 0.0),
             "feedback": eval_data.get("feedback", "No feedback available."),
             "follow_up_question": eval_data.get("follow_up_question", "")

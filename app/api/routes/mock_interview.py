@@ -1,4 +1,3 @@
-import ast
 import logging
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
@@ -9,7 +8,7 @@ from app.services.mock_interview_service import (
     start_mock_interview,
     get_mock_interview_sessions_for_user,
     get_mock_interview_session_details,
-    get_audio_file_map,
+    update_question_mapping_for_answer,
 )
 from app.schemas.mock_interview import (
     MockInterviewQuestionResponse,
@@ -17,6 +16,7 @@ from app.schemas.mock_interview import (
     MockInterviewSessionDetails,
     ProcessingStartedResponse,
 )
+from app.utils.aws_utils import send_to_mock_interview_queue
 from app.utils.constants import FEATURE_MOCK_INTERVIEW
 from app.utils.plan_usage import check_feature_access
 
@@ -56,50 +56,26 @@ async def start_interview(
 @router.post("/{session_id}/process", response_model=ProcessingStartedResponse)
 async def process_interview(
     session_id: str,
-    question_audio_map: str = Form(...),  # JSON mapping of question_id -> filenames
-    audio_files: list[UploadFile] = File(...),
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user = Depends(get_current_user)
 ):
     """
-    Processes all answers, evaluates them, and generates final interview results.
+    Processes the mock interview by loading the updated questions mapping (with answer audio file keys)
+    from storage and dispatching the session for asynchronous evaluation.
     """
     try:
-        logger.info(
-            f"[MOCK_PROCESS] Verifying access for user: {current_user.id}, session: {session_id}"
-        )
-        check_feature_access(db, current_user.id, FEATURE_MOCK_INTERVIEW)
-
-        logger.info(
-            f"[MOCK_PROCESS] Uploading audio files to S3 for session: {session_id}"
-        )
-        audio_file_map = await get_audio_file_map(
-            current_user.id, session_id, audio_files
-        )
-
-        from app.utils.aws_utils import send_to_mock_interview_queue
-
-        logger.info(f"[MOCK_PROCESS] Dispatching session: {session_id} to SQS queue")
-
-        send_to_mock_interview_queue(
-            {
-                "user_id": current_user.id,
-                "session_id": session_id,
-                "question_audio_map": ast.literal_eval(question_audio_map),
-                "audio_file_map": audio_file_map,
-            }
-        )
-
-        logger.info(
-            f"[MOCK_PROCESS] Mock interview session {session_id} queued successfully"
-        )
-
+        logger.info(f"[ROUTE] Received process request for session {session_id} by user {current_user.id}")
+        payload = {
+            "user_id": current_user.id,
+            "session_id": session_id,
+        }
+        send_to_mock_interview_queue(payload)
+        logger.info(f"[ROUTE] Session {session_id} queued successfully for processing")
         return {
             "status": "processing",
-            "message": "Your interview is being evaluated. You'll be notified once it's done.",
+            "message": "Your interview is being evaluated. You'll be notified once it's done."
         }
-    except Exception as e:
-        logger.error(f"[MOCK_PROCESS] Failed to process session {session_id}: {e}")
+    except Exception as exc:
+        logger.error(f"[ROUTE] Error processing session {session_id}: {exc}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process interview")
 
 
@@ -143,3 +119,31 @@ async def get_mock_interview_details(
             f"[MOCK_SESSION_DETAIL] Error fetching details for session {session_id}: {e}"
         )
         raise HTTPException(status_code=500, detail="Failed to fetch session details")
+
+
+@router.post("/{session_id}/upload-answer", response_model=dict)
+async def upload_answer(
+    session_id: str,
+    question_id: str = Form(...),
+    answer_audio: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+        Incrementally uploads a candidate's answer audio for a given question.
+        This endpoint updates the questions mapping file stored in S3 to include the new answer audio file key.
+    """
+    try:
+        logger.info(
+            f"[ROUTE] Received answer upload for session {session_id}, question {question_id}, user {current_user.id}")
+        result = await update_question_mapping_for_answer(
+            db=db,
+            session_id=session_id,
+            user_id=current_user.id,
+            question_id=question_id,
+            answer_audio=answer_audio
+        )
+        return result
+    except Exception as exc:
+        logger.error(f"[ROUTE] Error in upload_answer endpoint for session {session_id}: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to upload answer")

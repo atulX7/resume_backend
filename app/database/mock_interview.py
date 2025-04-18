@@ -11,9 +11,9 @@ def create_mock_interview_session(
     session_id: str,
     user_id: str,
     job_title: str,
-    jd_s3_url: str,
-    resume_s3_url: str,
-    prev_question_s3_url: str,
+    jd_storage_key: str,
+    resume_storage_key: str,
+    questions_mapping_storage_key: str,
 ):
     """Creates a new mock interview session and stores in DB."""
     logger.info(
@@ -24,9 +24,9 @@ def create_mock_interview_session(
             id=session_id,
             user_id=user_id,
             job_title=job_title,
-            job_description_s3_url=jd_s3_url,
-            resume_s3_url=resume_s3_url,
-            previous_questions_s3_url=prev_question_s3_url,
+            job_description_storage_key=jd_storage_key,
+            resume_storage_key=resume_storage_key,
+            questions_mapping_storage_key=questions_mapping_storage_key,
         )
         db.add(session)
         db.commit()
@@ -80,15 +80,15 @@ def get_mock_interview_sessions_by_user(db: Session, user_id: str):
 
 
 def save_interview_results(
-    db: Session, session, interview_log_s3_url, ai_feedback_s3_url, status
+    db: Session, session, interview_log_storage_key, ai_feedback_storage_key, status
 ):
     """Saves evaluation results in the database."""
     logger.info(
         f"[SAVE_RESULTS] Saving results for session: {session.id} | Status: {status}"
     )
     try:
-        session.interview_log_s3_url = interview_log_s3_url
-        session.ai_feedback_s3_url = ai_feedback_s3_url
+        session.interview_log_storage_key = interview_log_storage_key
+        session.ai_feedback_storage_key = ai_feedback_storage_key
         session.status = status
         db.commit()
         db.refresh(session)

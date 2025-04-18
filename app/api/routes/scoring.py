@@ -33,7 +33,7 @@ async def ai_score_resume(
         result = score_resume(resume_file)
 
         logger.info(
-            f"[RESUME_SCORE] Successfully scored resume for user: {current_user.id} with result: {result}"
+            f"[RESUME_SCORE] Successfully scored resume for user: {current_user.id}"
         )
         return result
     except HTTPException as e:

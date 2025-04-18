@@ -31,7 +31,7 @@ def score_resume(resume_file: UploadFile):
             ai_response = call_openai(prompt)
 
         try:
-            scores = parse_ai_response(
+            parsed = parse_ai_response(
                 ai_response
             )  # Convert AI response to a dictionary
             logger.info("[RESUME_SCORING] Successfully parsed AI response.")
@@ -40,15 +40,15 @@ def score_resume(resume_file: UploadFile):
                 f"[RESUME_SCORING] Failed to decode AI response: {str(e)}",
                 exc_info=True,
             )
-            scores = {}  # Default empty dict if parsing fails
+            parsed = {}  # Default empty dict if parsing fails
         except Exception as e:
             logger.error(
                 f"[RESUME_SCORING] Unexpected error while parsing AI response: {str(e)}",
                 exc_info=True,
             )
-            scores = {}
+            parsed = {}
 
-        return ResumeScoringResponse(scores=scores)
+        return ResumeScoringResponse(**parsed)
     except Exception as e:
         logger.error(
             f"[RESUME_SCORING] Scoring failed for file {resume_file.filename}: {str(e)}",

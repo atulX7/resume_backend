@@ -48,7 +48,6 @@ async def tailor_resume_api(
             f"❌ Failed to tailor resume: user_id={current_user.id}, job_title={job_title}"
         )
         raise HTTPException(status_code=500, detail="Error generating tailored resume")
-
     logger.info(
         f"✅ Tailored resume generated successfully for user_id={current_user.id}. Suggestions are: {tailored_response}"
     )

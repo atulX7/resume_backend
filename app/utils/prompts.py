@@ -1,102 +1,299 @@
 JD_TAILORING_PROMPT = """
-    You are an expert resume reviewer over a decade of experience. Your task is to analyze the attached resume file
-    and suggest inline improvements based on the following job details:
+    You are an expert resume coach and recruiter with 10+ years of experience. Your task is to **analyze the entire resume file** resume_content given below and **suggest targeted improvements** to help tailor the resume for the job below.
 
-    - **Job Title:** {job_title}
-    - **Job Description:** {job_description}
-    - **Candidate Skills:** {skills}
+🧾 Job Title: {job_title}
+
+📋 Full Job Description:
+{job_description}
+
+🧠 User-Declared Proficiency / Skills:
+{skills}
+
 
     🎯 **Resume Content:**
     {resume_content}
 
-    🔹 **Instructions:**
-    1. Identify **weak areas** in the resume and **suggest improvements**.
-    2. Highlight **missing sections** (e.g., "Add a Certifications section").
-    3. Return the analysis in a structured **JSON format**.
+🔍 Your Responsibilities:
+1. Thoroughly analyze the resume and compare it against the job description and skills provided.
+2. Suggest inline improvements to each section (Summary, Experience, Skills, Projects, Education).
+3. Rewrite vague statements to include measurable results and relevant keywords from the JD.
+4. Identify and highlight missing keywords, tools, or expected content.
+5. Suggest where underutilized user skills can be better demonstrated.
+6. Provide scores and final improvement tips to enhance alignment with the JD.
+
+🖍️ Highlight Color Codes:
+- "green": Already aligned well with the JD
+- "yellow": Needs improvement or rewording to improve match
+- "blue": Missing but important for this JD
+
 
     🎯 **Response Format (JSON)**
     {{
-      "sections": {{
-        "summary": {{
-          "current_text": "Existing summary...",
-          "suggested_text": "Improved summary with impact...",
-          "highlight_color": "yellow"
-        }},
-        "experience": [
-          {{
-            "position": "Software Engineer",
-            "company": "TechCorp",
-            "improvements": [
-              {{
-                "current_text": "Worked on APIs.",
-                "suggested_text": "Developed scalable RESTful APIs using FastAPI, improving response times by 30%.",
-                "highlight_color": "green"
-              }}
-            ]
-          }}
-        ],
-        "new_sections": [
-          {{
-            "title": "Certifications",
-            "content": "AWS Certified Solutions Architect",
-            "highlight_color": "blue"
-          }}
-        ]
+    "summary": {{
+      "current_text": "...",
+      "suggested_text": "...",
+      "highlight_color": "yellow"
+    }},
+    "experience": [
+  {{
+    "position": "...",
+    "company": "...",
+    "matched_points": [
+      {{
+        "text": "...",
+        "justification": "...",
+        "highlight_color": "green"
       }}
-    }}
+    ],
+    "modified_points": [
+      {{
+        "current_text": "...",
+        "suggested_text": "...",
+        "highlight_color": "yellow"
+      }}
+    ],
+    "missing_points": [
+      {{
+        "expected_topic": "...",
+        "suggestion": "...",
+        "highlight_color": "blue"
+      }}
+    ]
+  }}
+]
+,
+    "user_skills_mapping": [
+  {{
+    "skill": "...",
+    "currently_in_resume": true,
+    "recommended_section": "...",
+    "action": "enhance"
+  }},
+  {{
+    "skill": "...",
+    "currently_in_resume": false,
+    "recommended_section": "...",
+    "action": "add"
+  }}
+],
+"skills": {{
+  "used_well": ["..."],
+  "underutilized": ["..."],
+  "missing_keywords": ["..."],
+  "suggested_action": "..."
+}},
+"jd_alignment_summary": {{
+    "total_jd_points": <number of skills/points in jd>,
+    "matched": <number of matched skills/points>,
+    "partially_matched": <number of partially matched skills/points>,
+    "missing": <number of missing skills/points>,
+    "match_score_percent": <0–100>
+  }},
+    "new_sections": [
+      {{
+        "title": "...",
+        "content": "...",
+        "highlight_color": "blue"
+      }}
+    ],
+    "recommendations": ["..."],
+    "final_notes": ["..."],
+    "section_scores": {{
+    "summary": <0–100>,
+    "experience": <0–100>,
+    "skills": <0–100>,
+    "projects": <0–100>,
+    "education": <0–100>
+  }}
+  }}
+    
+    Please analyze and return **only the structured JSON response**. Do not include any explanation or extra commentary.
     """
 
 
 RESUME_SCORING_PROMPT = """
-    You are an expert resume evaluator with years of experience in hiring and career coaching. 
-    Your task is to analyze the following resume and **provide a detailed score breakdown** 
-    based on various criteria.
+    You are an expert resume evaluator with years of experience in hiring, recruiting, and career coaching.
 
-    🎯 **Evaluation Criteria** (Score range: 0-100)
-    1. **Layout & Searchability** – Is the resume well-structured, easy to navigate, and visually appealing?
-    2. **ATS Readability** – Can an Applicant Tracking System (ATS) effectively parse this resume?
-    3. **Impact & Effectiveness** – Does the resume emphasize achievements rather than responsibilities?
-    4. **Quantifiable Achievements** – Are there measurable results (e.g., "Increased revenue by 25%")?
-    6. **Readability & Clarity** – Is it well-written, free of jargon, and easy to understand?
-    7. **Personal Branding** – Does it have a strong professional summary showcasing unique skills?
-    8. **Grammar & Spelling** – Are there any errors in spelling, punctuation, or grammar?
-    9. **Contact Information** – Is it correctly formatted and complete?
-    10. **Section Completeness** – Does it include Experience, Education, Skills, etc.?
-    11. **Visual Appeal** – Are font choice, whitespace, and formatting professional?
-    12. **Cultural Fit** – Does it align with industry norms and company values?
-    13. **Career Progression** – Does it show logical career growth and promotions?
-    14. **Emotional & Persuasive Appeal** – Is it engaging, compelling, and well-crafted?
-    15. **Conciseness** – Is it to-the-point, avoiding fluff and excessive length?
-    16. **Bullet Point Clarity** – Are bullet points clear, direct, and meaningful?
-    17. **Industry-Specific Keywords** – Does it contain relevant terminology for the role?
-    18. **Call-to-Action** – Does it end with a compelling closing statement?
+Your task is to thoroughly analyze the resume provided and return a structured JSON response based on the criteria listed below.
 
-    ✅ **Scoring Format**
-    Return the response in the following JSON format:
+You must:
+
+1. Provide a **brief overall summary** of the resume’s quality (3–5 lines).
+2. Score the resume across **18 specific criteria** (0–100).
+3. For each criterion:
+    - Add a **description** of what it measures
+    - Provide a **score**
+    - Provide a **brief assessment**
+    - Add a **color-coded status**:
+      - 🟢 `"green"`: Excellent (score 80–100)
+      - 🟡 `"yellow"`: Average/Needs Improvement (score 60–79)
+      - 🔴 `"red"`: Poor (score 0–59)
+
+---
+
+🎯 **Evaluation Criteria**
+
+1. **Layout & Searchability** – Is the resume well-structured, easy to navigate, and visually appealing?
+2. **ATS Readability** – Can an Applicant Tracking System (ATS) effectively parse this resume?
+3. **Impact & Effectiveness** – Does the resume emphasize achievements rather than responsibilities?
+4. **Quantifiable Achievements** – Are there measurable results (e.g., "Increased revenue by 25%")?
+5. **Readability & Clarity** – Is it well-written, free of jargon, and easy to understand?
+6. **Personal Branding** – Does it have a strong professional summary showcasing unique skills?
+7. **Grammar & Spelling** – Are there any errors in spelling, punctuation, or grammar?
+8. **Contact Information** – Is it correctly formatted and complete?
+9. **Section Completeness** – Does it include Experience, Education, Skills, etc.?
+10. **Visual Appeal** – Are font choice, whitespace, and formatting professional?
+11. **Cultural Fit** – Does it align with industry norms and company values?
+12. **Career Progression** – Does it show logical career growth and promotions?
+13. **Emotional & Persuasive Appeal** – Is it engaging, compelling, and well-crafted?
+14. **Conciseness** – Is it to-the-point, avoiding fluff and excessive length?
+15. **Bullet Point Clarity** – Are bullet points clear, direct, and meaningful?
+16. **Industry-Specific Keywords** – Does it contain relevant terminology for the role?
+17. **Call-to-Action** – Does it end with a compelling closing statement?
+18. **Overall Cohesion** – Is the resume consistent in tone, style, and flow?
+
+---
+
+✅ **Return Format**
+
+Return **only** a valid JSON object in the following format:
+
+{{
+  "overall_summary": "<Brief 3–5 line summary of the resume’s overall strengths and weaknesses>",
+  "detailed_evaluation": [
     {{
-        "Layout": <score>,
-        "ATS_Readability": <score>,
-        "Impact": <score>,
-        "Quantifiable_Achievements": <score>,
-        "Readability": <score>,
-        "Personal_Branding": <score>,
-        "Grammar_Spelling": <score>,
-        "Contact_Info": <score>,
-        "Section_Completeness": <score>,
-        "Visual_Appeal": <score>,
-        "Cultural_Fit": <score>,
-        "Career_Progression": <score>,
-        "Emotional_Appeal": <score>,
-        "Conciseness": <score>,
-        "Bullet_Point_Clarity": <score>,
-        "Industry_Keywords": <score>,
-        "Call_To_Action": <score>
+      "criterion": "Layout & Searchability",
+      "description": "Checks if the resume is visually clean, well-structured, and easy to navigate.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "ATS Readability",
+      "description": "Assesses whether the resume can be effectively parsed by Applicant Tracking Systems (ATS).",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Impact & Effectiveness",
+      "description": "Evaluates if the resume focuses on outcomes and achievements rather than just duties.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Quantifiable Achievements",
+      "description": "Checks for use of metrics, KPIs, or measurable impact to demonstrate success.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Readability & Clarity",
+      "description": "Ensures the resume is clear, simple, and avoids jargon or unnecessary complexity.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Personal Branding",
+      "description": "Assesses whether the resume presents a clear, unique value proposition and professional identity.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Grammar & Spelling",
+      "description": "Checks for spelling, grammar, punctuation, and other language issues.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Contact Information",
+      "description": "Validates that contact info is complete, professional, and properly formatted.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Section Completeness",
+      "description": "Checks if the resume contains all essential sections like Experience, Education, Skills, etc.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Visual Appeal",
+      "description": "Evaluates fonts, spacing, alignment, and use of white space to ensure professional look.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Cultural Fit",
+      "description": "Assesses how well the tone, style, and presentation align with the target industry or company type.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Career Progression",
+      "description": "Analyzes if the resume shows logical career growth, promotions, or expanding responsibilities.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Emotional & Persuasive Appeal",
+      "description": "Evaluates if the resume feels compelling, confident, and persuasive to the reader.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Conciseness",
+      "description": "Checks if the content is focused, avoids unnecessary fluff, and respects space constraints.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Bullet Point Clarity",
+      "description": "Assesses whether bullet points are action-driven, results-focused, and easy to read.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Industry-Specific Keywords",
+      "description": "Checks for presence of role- and domain-specific keywords for better ATS matching.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Call-to-Action",
+      "description": "Evaluates if the resume ends with a closing statement that encourages recruiter action.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
+    }},
+    {{
+      "criterion": "Overall Cohesion",
+      "description": "Assesses consistency in formatting, language, and overall tone across the resume.",
+      "score": <number>,
+      "status": "green | yellow | red",
+      "assessment": "<Short feedback>"
     }}
+  ]
+}}
 
     🔹 **Resume to Evaluate**
     {resume_text}
 
-    Please analyze and return **only the structured JSON response**.
+    Please analyze the entire resume and return **only the structured JSON response**.
     """
 
 
