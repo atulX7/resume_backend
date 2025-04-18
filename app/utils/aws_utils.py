@@ -88,17 +88,24 @@ def generate_presigned_url(file_key: str, expiration: int = 3600) -> str:
     bucket_name = settings.S3_BUCKET_NAME
     try:
         url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': bucket_name, 'Key': file_key},
-            ExpiresIn=expiration
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": file_key},
+            ExpiresIn=expiration,
         )
-        logger.info(f"[PRESIGNED_URL] Successfully generated presigned URL for key: {file_key}")
+        logger.info(
+            f"[PRESIGNED_URL] Successfully generated presigned URL for key: {file_key}"
+        )
         return url
     except ClientError as ce:
-        logger.error(f"[PRESIGNED_URL] ClientError generating presigned URL for key {file_key}: {ce}", exc_info=True)
+        logger.error(
+            f"[PRESIGNED_URL] ClientError generating presigned URL for key {file_key}: {ce}",
+            exc_info=True,
+        )
         raise
     except Exception as exc:
-        logger.error(f"[PRESIGNED_URL] Unexpected error for key {file_key}: {exc}", exc_info=True)
+        logger.error(
+            f"[PRESIGNED_URL] Unexpected error for key {file_key}: {exc}", exc_info=True
+        )
         raise
 
 

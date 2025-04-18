@@ -54,16 +54,15 @@ async def start_interview(
 
 
 @router.post("/{session_id}/process", response_model=ProcessingStartedResponse)
-async def process_interview(
-    session_id: str,
-    current_user = Depends(get_current_user)
-):
+async def process_interview(session_id: str, current_user=Depends(get_current_user)):
     """
     Processes the mock interview by loading the updated questions mapping (with answer audio file keys)
     from storage and dispatching the session for asynchronous evaluation.
     """
     try:
-        logger.info(f"[ROUTE] Received process request for session {session_id} by user {current_user.id}")
+        logger.info(
+            f"[ROUTE] Received process request for session {session_id} by user {current_user.id}"
+        )
         payload = {
             "user_id": current_user.id,
             "session_id": session_id,
@@ -72,10 +71,12 @@ async def process_interview(
         logger.info(f"[ROUTE] Session {session_id} queued successfully for processing")
         return {
             "status": "processing",
-            "message": "Your interview is being evaluated. You'll be notified once it's done."
+            "message": "Your interview is being evaluated. You'll be notified once it's done.",
         }
     except Exception as exc:
-        logger.error(f"[ROUTE] Error processing session {session_id}: {exc}", exc_info=True)
+        logger.error(
+            f"[ROUTE] Error processing session {session_id}: {exc}", exc_info=True
+        )
         raise HTTPException(status_code=500, detail="Failed to process interview")
 
 
@@ -130,20 +131,24 @@ async def upload_answer(
     current_user=Depends(get_current_user),
 ):
     """
-        Incrementally uploads a candidate's answer audio for a given question.
-        This endpoint updates the questions mapping file stored in S3 to include the new answer audio file key.
+    Incrementally uploads a candidate's answer audio for a given question.
+    This endpoint updates the questions mapping file stored in S3 to include the new answer audio file key.
     """
     try:
         logger.info(
-            f"[ROUTE] Received answer upload for session {session_id}, question {question_id}, user {current_user.id}")
+            f"[ROUTE] Received answer upload for session {session_id}, question {question_id}, user {current_user.id}"
+        )
         result = await update_question_mapping_for_answer(
             db=db,
             session_id=session_id,
             user_id=current_user.id,
             question_id=question_id,
-            answer_audio=answer_audio
+            answer_audio=answer_audio,
         )
         return result
     except Exception as exc:
-        logger.error(f"[ROUTE] Error in upload_answer endpoint for session {session_id}: {exc}", exc_info=True)
+        logger.error(
+            f"[ROUTE] Error in upload_answer endpoint for session {session_id}: {exc}",
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail="Failed to upload answer")

@@ -21,7 +21,10 @@ from app.utils.mock_data import (
     MOCK_PREV_QUESTIONS_S3_URL,
     MOCK_AUDIO_S3_URL,
     MOCK_AUDIO_TRANSCRIPTION_TEXT,
-    MOCK_INTERVIEW_EVALUATION_RESPONSE, MOCK_RESUME_STORAGE_KEY, MOCK_JD_STORAGE_KEY, MOCK_QUES_MAP_STORAGE_KEY,
+    MOCK_INTERVIEW_EVALUATION_RESPONSE,
+    MOCK_RESUME_STORAGE_KEY,
+    MOCK_JD_STORAGE_KEY,
+    MOCK_QUES_MAP_STORAGE_KEY,
 )
 from app.utils.mock_interview_utils import (
     format_skipped_question,
@@ -37,7 +40,8 @@ from app.utils.aws_utils import (
     upload_audio_to_s3_sync,
     generate_presigned_url,
     upload_mock_interview_data,
-    load_json_from_s3, send_to_mock_interview_queue,
+    load_json_from_s3,
+    send_to_mock_interview_queue,
 )
 from app.database.mock_interview import (
     create_mock_interview_session,
@@ -167,7 +171,9 @@ async def process_mock_interview_worker(
     interview_log_storage_key = ""
     ai_feedback_storage_key = ""
     try:
-        queue_logger.info(f"[JOB] Starting interview processing for user: {user_id}, session: {session_id}")
+        queue_logger.info(
+            f"[JOB] Starting interview processing for user: {user_id}, session: {session_id}"
+        )
         session = get_mock_interview_session(db, session_id)
         if not session:
             queue_logger.warning(f"[JOB] Session {session_id} not found")
@@ -177,17 +183,23 @@ async def process_mock_interview_worker(
         # Load questions mapping from storage (which now includes answer_audio file keys)
         mapping_from_storage = load_json_from_s3(session.questions_mapping_storage_key)
         if not mapping_from_storage:
-            queue_logger.error(f"[JOB] Questions mapping file missing for session {session_id}")
+            queue_logger.error(
+                f"[JOB] Questions mapping file missing for session {session_id}"
+            )
             return
 
         # Iterate over each question and process the answer
         for question in mapping_from_storage:
             question_id = question.get("question_id")
             answer_audio_key = question.get("answer_audio")
-            queue_logger.info(f"[JOB] Processing question id: {question_id}, answer_audio_key: {answer_audio_key}")
+            queue_logger.info(
+                f"[JOB] Processing question id: {question_id}, answer_audio_key: {answer_audio_key}"
+            )
 
             if not answer_audio_key:
-                queue_logger.warning(f"[JOB] Missing answer audio for question: {question_id}")
+                queue_logger.warning(
+                    f"[JOB] Missing answer audio for question: {question_id}"
+                )
                 interview_log.append(format_skipped_question(question))
                 continue
 
@@ -229,16 +241,26 @@ async def process_mock_interview_worker(
             user_id, session_id, MOCK_INTERVIEW_AI_FEEDBACK_FILE, final_evaluation
         )
         session_status = "completed"
-        queue_logger.info(f"[JOB] Updated interview evaluation data for session {session_id}")
+        queue_logger.info(
+            f"[JOB] Updated interview evaluation data for session {session_id}"
+        )
 
         # Send the final results via email (asynchronously).
         await send_interview_result_email(db, user_id, session, final_evaluation)
         queue_logger.info(f"[JOB] Finished processing session {session_id}")
     except Exception as e:
-        queue_logger.error(f"[JOB] Error processing session {session_id}: {e}", exc_info=True)
+        queue_logger.error(
+            f"[JOB] Error processing session {session_id}: {e}", exc_info=True
+        )
     finally:
         # Save the final processing state in the database.
-        save_interview_results(db, session, interview_log_storage_key, ai_feedback_storage_key, session_status)
+        save_interview_results(
+            db,
+            session,
+            interview_log_storage_key,
+            ai_feedback_storage_key,
+            session_status,
+        )
 
 
 def get_mock_interview_sessions_for_user(db: Session, user_id: str):
@@ -299,7 +321,7 @@ async def update_question_mapping_for_answer(
     session_id: str,
     user_id: str,
     question_id: str,
-    answer_audio  # This is an UploadFile instance
+    answer_audio,  # This is an UploadFile instance
 ) -> dict:
     """
     Uploads the candidate's answer audio file and updates the S3-stored questions mapping file
@@ -313,21 +335,33 @@ async def update_question_mapping_for_answer(
             user_id,
             session_id,
             answer_audio.filename,
-            answer_audio.content_type
+            answer_audio.content_type,
         )
-        logger.info(f"[SERVICE] Uploaded answer audio for question {question_id}; received file key: {storage_file_key}")
+        logger.info(
+            f"[SERVICE] Uploaded answer audio for question {question_id}; received file key: {storage_file_key}"
+        )
     except Exception as exc:
-        logger.error(f"[SERVICE] Error during S3 upload for question {question_id}: {exc}", exc_info=True)
+        logger.error(
+            f"[SERVICE] Error during S3 upload for question {question_id}: {exc}",
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail="Audio upload failed") from exc
 
     # --- Step 2. Retrieve the session and load the questions mapping file ---
     session_obj = get_mock_interview_session(db, session_id)
     try:
         questions_mapping = load_json_from_s3(session_obj.questions_mapping_storage_key)
-        logger.info(f"[SERVICE] Fetched questions mapping file for session {session_id}")
+        logger.info(
+            f"[SERVICE] Fetched questions mapping file for session {session_id}"
+        )
     except Exception as exc:
-        logger.error(f"[SERVICE] Error fetching questions mapping for session {session_id}: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch questions mapping") from exc
+        logger.error(
+            f"[SERVICE] Error fetching questions mapping for session {session_id}: {exc}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail="Failed to fetch questions mapping"
+        ) from exc
 
     # --- Step 3. Update the question mapping ---
     updated = False
@@ -335,28 +369,34 @@ async def update_question_mapping_for_answer(
         if item.get("question_id") == question_id:
             item["answer_audio"] = storage_file_key
             updated = True
-            logger.info(f"[SERVICE] Updated question {question_id} with new answer audio file key.")
+            logger.info(
+                f"[SERVICE] Updated question {question_id} with new answer audio file key."
+            )
             break
 
     if not updated:
-        logger.error(f"[SERVICE] Question ID {question_id} not found in mapping file for session {session_id}")
+        logger.error(
+            f"[SERVICE] Question ID {question_id} not found in mapping file for session {session_id}"
+        )
         raise HTTPException(status_code=400, detail="Question ID not found in mapping")
 
     # --- Step 4. Re-upload the updated questions mapping file ---
     try:
         new_prev_q_key = upload_mock_interview_data(
-            user_id,
-            session_id,
-            MOCK_INTERVIEW_PREV_Q_FILE,
-            questions_mapping
+            user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE, questions_mapping
         )
-        logger.info(f"[SERVICE] Re-uploaded questions mapping file for session {session_id}; new file key: {new_prev_q_key}")
+        logger.info(
+            f"[SERVICE] Re-uploaded questions mapping file for session {session_id}; new file key: {new_prev_q_key}"
+        )
         # Update the session record (if needed)
         session_obj.questions_mapping_storage_key = new_prev_q_key
         db.commit()
         db.refresh(session_obj)
     except Exception as exc:
-        logger.error(f"[SERVICE] Failed to update questions mapping file for session {session_id}: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to update questions mapping") from exc
+        logger.error(
+            f"[SERVICE] Failed to update questions mapping file for session {session_id}: {exc}",
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail="Failed to update questions mapping")
 
     return {"status": "success", "answer_audio_key": storage_file_key}

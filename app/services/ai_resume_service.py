@@ -38,7 +38,6 @@ def tailor_resume(
         )
 
     try:
-
         review_suggestions = parse_ai_response(ai_response)
         logger.info("[TAILOR_RESUME] AI response parsed successfully.")
     except json.JSONDecodeError as e:
