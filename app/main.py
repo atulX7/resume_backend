@@ -1,18 +1,7 @@
 # /resume-builder-app
 import logging
+import uvicorn
 
-## Step 1: Poetry Setup
-# Run the following commands to create the project
-# poetry init -n
-
-# Install dependencies
-# poetry install
-
-# To run the application
-# poetry run uvicorn app.main:app --reload
-
-## Directory Structure
-# The application is structured using modular FastAPI best practices
 
 ## main.py - FastAPI Entry Point
 from fastapi import FastAPI
@@ -77,8 +66,6 @@ else:
 def root():
     return {"message": "AI Resume Builder API is running!"}
 
-
-import uvicorn
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -5,10 +5,8 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.services.resume_service import handle_resume_upload
 from app.utils.ai_assistant import analyze_resume_with_ai
-from app.utils.aws_utils import generate_presigned_url
-from app.utils.mock_data import MOCK_TAILOR_RESPONSE, MOCK_RESUME_S3_URL
+from app.utils.mock_data import MOCK_TAILOR_RESPONSE
 from app.utils.utils import parse_ai_response
 
 logger = logging.getLogger("app")
@@ -30,7 +28,6 @@ def tailor_resume(
     if settings.MOCK_DATA:
         logger.info("[TAILOR_RESUME] Using MOCK data for resume tailoring.")
         ai_response = MOCK_TAILOR_RESPONSE
-        # s3_url = MOCK_RESUME_S3_URL
     else:
         logger.info("[TAILOR_RESUME] Calling AI assistant to analyze resume...")
         ai_response = analyze_resume_with_ai(

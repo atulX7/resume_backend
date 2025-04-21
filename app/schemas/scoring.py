@@ -12,4 +12,5 @@ class EvaluationItem(BaseModel):
 
 class ResumeScoringResponse(BaseModel):
     overall_summary: str
+    overall_score: float
     detailed_evaluation: List[EvaluationItem]

@@ -134,14 +134,6 @@ MOCK_JD_STORAGE_KEY = "b7465672-73a5-4ce0-bd35-69c2297c363a/job_description.json
 MOCK_QUES_MAP_STORAGE_KEY = "b7465672-73a5-4ce0-bd35-69c2297c363a/questions_map.json"
 
 
-MOCK_RESUME_S3_URL = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/resume_02118e79-aa1e-4792-b5ca-6f6363ab0dd0.pdf"
-
-MOCK_JD_S3_URL = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/job_description.json"
-
-MOCK_PREV_QUESTIONS_S3_URL = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/previous_questions.json"
-
-MOCK_AUDIO_S3_URL = "https://so-3645-test-bucket.s3.amazonaws.com/b7465672-73a5-4ce0-bd35-69c2297c363a/mock_interviews/cd156fa5-e52f-4f02-83df-f2e4456735c5/audio_b7465672-cd156fa5-1.mp3"
-
 MOCK_INTERVIEW_QUESTIONS_RESPONSE = """
 {
   "questions": [
@@ -202,6 +194,7 @@ MOCK_INTERVIEW_EVALUATION_RESPONSE = """
 MOCK_SCORE = """
  {
   "overall_summary": "The resume showcases an impressive background in AI & Cloud Engineering with a strong emphasis on leadership and technological innovation. It demonstrates a detailed and structured presentation of achievements and skills, using metrics effectively. Improvements could be made in ATS readability and minor formatting aspects to enhance overall presentation.",
+  "overall_score": 89.0,
   "detailed_evaluation": [
     {
       "criterion": "Layout & Searchability",

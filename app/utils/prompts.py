@@ -119,7 +119,7 @@ Your task is to thoroughly analyze the resume provided and return a structured J
 You must:
 
 1. Provide a **brief overall summary** of the resume’s quality (3–5 lines).
-2. Score the resume across **18 specific criteria** (0–100).
+2. Score the resume across **18 specific criteria** (0–100) which will be overall_score.
 3. For each criterion:
     - Add a **description** of what it measures
     - Provide a **score**
@@ -160,6 +160,7 @@ Return **only** a valid JSON object in the following format:
 
 {{
   "overall_summary": "<Brief 3–5 line summary of the resume’s overall strengths and weaknesses>",
+  "overall_score": <0–100>,
   "detailed_evaluation": [
     {{
       "criterion": "Layout & Searchability",

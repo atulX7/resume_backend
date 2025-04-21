@@ -1,4 +1,3 @@
-import json
 import uuid
 
 from sqlalchemy.orm import Session
@@ -16,10 +15,6 @@ from app.utils.constants import (
 )
 from app.utils.mock_data import (
     MOCK_INTERVIEW_QUESTIONS_RESPONSE,
-    MOCK_RESUME_S3_URL,
-    MOCK_JD_S3_URL,
-    MOCK_PREV_QUESTIONS_S3_URL,
-    MOCK_AUDIO_S3_URL,
     MOCK_AUDIO_TRANSCRIPTION_TEXT,
     MOCK_INTERVIEW_EVALUATION_RESPONSE,
     MOCK_RESUME_STORAGE_KEY,
@@ -41,7 +36,6 @@ from app.utils.aws_utils import (
     generate_presigned_url,
     upload_mock_interview_data,
     load_json_from_s3,
-    send_to_mock_interview_queue,
 )
 from app.database.mock_interview import (
     create_mock_interview_session,
@@ -135,28 +129,6 @@ def start_mock_interview(
     except Exception as e:
         logger.error(
             f"❌ Failed to start mock interview for user: {user_id}, Error: {str(e)}"
-        )
-        raise
-
-
-async def get_audio_file_map(user_id, session_id, audio_files):
-    try:
-        if settings.MOCK_DATA:
-            return {file.filename: MOCK_AUDIO_S3_URL for file in audio_files}
-
-        upload_tasks = []
-        for file in audio_files:
-            content = await file.read()
-            upload_tasks.append(
-                upload_audio_to_s3_async(
-                    content, user_id, session_id, file.filename, file.content_type
-                )
-            )
-        audio_s3_urls = await asyncio.gather(*upload_tasks)
-        return {file.filename: url for file, url in zip(audio_files, audio_s3_urls)}
-    except Exception as e:
-        logger.error(
-            f"❌ Error uploading audio files for session: {session_id}, Error: {str(e)}"
         )
         raise
 

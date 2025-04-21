@@ -3,17 +3,15 @@ import json
 import logging
 import uuid
 import time
-from urllib.parse import urlparse
 
 from fastapi import UploadFile
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, BotoCoreError
 from app.core.config import settings
+from boto3.s3.transfer import TransferConfig
 
 logger = logging.getLogger("app")
 queue_logger = logging.getLogger("sqs")  # This logger writes to logs/sqs.log
-
-from boto3.s3.transfer import TransferConfig
 
 transfer_config = TransferConfig(
     multipart_threshold=5 * 1024 * 1024,  # Use multipart if file > 5MB
