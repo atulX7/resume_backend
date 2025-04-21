@@ -199,8 +199,8 @@ MOCK_SCORE = """
     {
       "criterion": "Layout & Searchability",
       "description": "Checks if the resume is visually clean, well-structured, and easy to navigate.",
-      "score": 85,
-      "status": "green",
+      "score": 40,
+      "status": "red",
       "assessment": "The resume is well-organized with clearly defined sections, making it easy to navigate."
     },
     {
@@ -297,8 +297,8 @@ MOCK_SCORE = """
     {
       "criterion": "Bullet Point Clarity",
       "description": "Assesses whether bullet points are action-driven, results-focused, and easy to read.",
-      "score": 85,
-      "status": "green",
+      "score": 20,
+      "status": "red",
       "assessment": "Bullet points are clear, action-oriented, and focus on results."
     },
     {
