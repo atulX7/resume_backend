@@ -300,75 +300,78 @@ async def update_question_mapping_for_answer(
     to insert the new answer_audio file key for the corresponding question.
     """
     # --- Step 1. Upload the audio file ---
-    try:
-        content = await answer_audio.read()
-        storage_file_key = await upload_audio_to_s3_async(
-            content,
-            user_id,
-            session_id,
-            answer_audio.filename,
-            answer_audio.content_type,
-        )
-        logger.info(
-            f"[SERVICE] Uploaded answer audio for question {question_id}; received file key: {storage_file_key}"
-        )
-    except Exception as exc:
-        logger.error(
-            f"[SERVICE] Error during S3 upload for question {question_id}: {exc}",
-            exc_info=True,
-        )
-        raise HTTPException(status_code=500, detail="Audio upload failed") from exc
-
-    # --- Step 2. Retrieve the session and load the questions mapping file ---
-    session_obj = get_mock_interview_session(db, session_id)
-    try:
-        questions_mapping = load_json_from_s3(session_obj.questions_mapping_storage_key)
-        logger.info(
-            f"[SERVICE] Fetched questions mapping file for session {session_id}"
-        )
-    except Exception as exc:
-        logger.error(
-            f"[SERVICE] Error fetching questions mapping for session {session_id}: {exc}",
-            exc_info=True,
-        )
-        raise HTTPException(
-            status_code=500, detail="Failed to fetch questions mapping"
-        ) from exc
-
-    # --- Step 3. Update the question mapping ---
-    updated = False
-    for item in questions_mapping:
-        if item.get("question_id") == question_id:
-            item["answer_audio"] = storage_file_key
-            updated = True
-            logger.info(
-                f"[SERVICE] Updated question {question_id} with new answer audio file key."
+    if settings.MOCK_DATA:
+        storage_file_key = f"{user_id}/mock_interviews/{session_id}/audio/mock_audio.mp3"
+    else:
+        try:
+            content = await answer_audio.read()
+            storage_file_key = await upload_audio_to_s3_async(
+                content,
+                user_id,
+                session_id,
+                answer_audio.filename,
+                answer_audio.content_type,
             )
-            break
+            logger.info(
+                f"[SERVICE] Uploaded answer audio for question {question_id}; received file key: {storage_file_key}"
+            )
+        except Exception as exc:
+            logger.error(
+                f"[SERVICE] Error during S3 upload for question {question_id}: {exc}",
+                exc_info=True,
+            )
+            raise HTTPException(status_code=500, detail="Audio upload failed") from exc
 
-    if not updated:
-        logger.error(
-            f"[SERVICE] Question ID {question_id} not found in mapping file for session {session_id}"
-        )
-        raise HTTPException(status_code=400, detail="Question ID not found in mapping")
+        # --- Step 2. Retrieve the session and load the questions mapping file ---
+        session_obj = get_mock_interview_session(db, session_id)
+        try:
+            questions_mapping = load_json_from_s3(session_obj.questions_mapping_storage_key)
+            logger.info(
+                f"[SERVICE] Fetched questions mapping file for session {session_id}"
+            )
+        except Exception as exc:
+            logger.error(
+                f"[SERVICE] Error fetching questions mapping for session {session_id}: {exc}",
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=500, detail="Failed to fetch questions mapping"
+            ) from exc
 
-    # --- Step 4. Re-upload the updated questions mapping file ---
-    try:
-        new_prev_q_key = upload_mock_interview_data(
-            user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE, questions_mapping
-        )
-        logger.info(
-            f"[SERVICE] Re-uploaded questions mapping file for session {session_id}; new file key: {new_prev_q_key}"
-        )
-        # Update the session record (if needed)
-        session_obj.questions_mapping_storage_key = new_prev_q_key
-        db.commit()
-        db.refresh(session_obj)
-    except Exception as exc:
-        logger.error(
-            f"[SERVICE] Failed to update questions mapping file for session {session_id}: {exc}",
-            exc_info=True,
-        )
-        raise HTTPException(status_code=500, detail="Failed to update questions mapping")
+        # --- Step 3. Update the question mapping ---
+        updated = False
+        for item in questions_mapping:
+            if item.get("question_id") == question_id:
+                item["answer_audio"] = storage_file_key
+                updated = True
+                logger.info(
+                    f"[SERVICE] Updated question {question_id} with new answer audio file key."
+                )
+                break
+
+        if not updated:
+            logger.error(
+                f"[SERVICE] Question ID {question_id} not found in mapping file for session {session_id}"
+            )
+            raise HTTPException(status_code=400, detail="Question ID not found in mapping")
+
+        # --- Step 4. Re-upload the updated questions mapping file ---
+        try:
+            new_prev_q_key = upload_mock_interview_data(
+                user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE, questions_mapping
+            )
+            logger.info(
+                f"[SERVICE] Re-uploaded questions mapping file for session {session_id}; new file key: {new_prev_q_key}"
+            )
+            # Update the session record (if needed)
+            session_obj.questions_mapping_storage_key = new_prev_q_key
+            db.commit()
+            db.refresh(session_obj)
+        except Exception as exc:
+            logger.error(
+                f"[SERVICE] Failed to update questions mapping file for session {session_id}: {exc}",
+                exc_info=True,
+            )
+            raise HTTPException(status_code=500, detail="Failed to update questions mapping")
 
     return {"status": "success", "answer_audio_key": storage_file_key}
