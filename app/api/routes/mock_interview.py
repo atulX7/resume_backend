@@ -2,13 +2,15 @@ import logging
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
+
+from app.core.config import settings
 from app.database.connection import get_db
 from app.middleware.auth_dependency import get_current_user
 from app.services.mock_interview_service import (
     start_mock_interview,
     get_mock_interview_sessions_for_user,
     get_mock_interview_session_details,
-    update_question_mapping_for_answer,
+    update_question_mapping_for_answer, process_mock_interview_worker,
 )
 from app.schemas.mock_interview import (
     MockInterviewQuestionResponse,
@@ -54,7 +56,7 @@ async def start_interview(
 
 
 @router.post("/{session_id}/process", response_model=ProcessingStartedResponse)
-async def process_interview(session_id: str, current_user=Depends(get_current_user)):
+async def process_interview(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """
     Processes the mock interview by loading the updated questions mapping (with answer audio file keys)
     from storage and dispatching the session for asynchronous evaluation.
@@ -67,12 +69,25 @@ async def process_interview(session_id: str, current_user=Depends(get_current_us
             "user_id": current_user.id,
             "session_id": session_id,
         }
-        send_to_mock_interview_queue(payload)
-        logger.info(f"[ROUTE] Session {session_id} queued successfully for processing")
-        return {
-            "status": "processing",
-            "message": "Your interview is being evaluated. You'll be notified once it's done.",
-        }
+        if settings.MOCK_DATA:
+            logger.info(f"[ROUTE] MOCK mode enabled. Processing interview inline for session {session_id}")
+            await process_mock_interview_worker(
+                db=db,
+                user_id=current_user.id,
+                session_id=session_id,
+            )
+            return {
+                "status": "processed",
+                "message": "Mock interview processed successfully.",
+            }
+        else:
+            send_to_mock_interview_queue(payload)
+            logger.info(f"[ROUTE] Session {session_id} queued successfully for processing")
+            return {
+                "status": "processing",
+                "message": "Your interview is being evaluated. You'll be notified once it's done.",
+            }
+
     except Exception as exc:
         logger.error(
             f"[ROUTE] Error processing session {session_id}: {exc}", exc_info=True

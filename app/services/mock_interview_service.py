@@ -19,7 +19,7 @@ from app.utils.mock_data import (
     MOCK_INTERVIEW_EVALUATION_RESPONSE,
     MOCK_RESUME_STORAGE_KEY,
     MOCK_JD_STORAGE_KEY,
-    MOCK_QUES_MAP_STORAGE_KEY,
+    MOCK_QUES_MAP_STORAGE_KEY, MOCK_QUES_MAPPING,
 )
 from app.utils.mock_interview_utils import (
     format_skipped_question,
@@ -152,12 +152,16 @@ async def process_mock_interview_worker(
             return
 
         interview_log = []
-        # Load questions mapping from storage (which now includes answer_audio file keys)
-        mapping_from_storage = load_json_from_s3(session.questions_mapping_storage_key)
+        # ✅ Load questions mapping
+        if settings.MOCK_DATA:
+            queue_logger.info("[MOCK_MODE] Using mock questions mapping from constant.")
+            mapping_from_storage = MOCK_QUES_MAPPING
+            mapping_from_storage[0]["question_id"] = generate_question_id(user_id, session_id, 1)
+        else:
+            mapping_from_storage = load_json_from_s3(session.questions_mapping_storage_key)
+
         if not mapping_from_storage:
-            queue_logger.error(
-                f"[JOB] Questions mapping file missing for session {session_id}"
-            )
+            queue_logger.error(f"[JOB] Questions mapping file missing for session {session_id}")
             return
 
         # Iterate over each question and process the answer

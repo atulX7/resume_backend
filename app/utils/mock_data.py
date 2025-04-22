@@ -142,6 +142,14 @@ MOCK_INTERVIEW_QUESTIONS_RESPONSE = """
 }
 """
 
+MOCK_QUES_MAPPING = [
+    {
+        "question_id": "",
+        "question": "Can you elaborate on a project where you had to migrate infrastructure to Google Cloud and how you ensured the transition was seamless?",
+        "answer_audio": "b7465672-73a5-4ce0-bd35-69c2297c363a/mock.mp3"
+    }
+]
+
 MOCK_AUDIO_TRANSCRIPTION_TEXT = (
     "Scenario based questions in any technical interview are asked to assess the depth of your knowledge. "
     "So whenever you get a scenario based question, don't jump to the answer. Try to assess the situation. "
