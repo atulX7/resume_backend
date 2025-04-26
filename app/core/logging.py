@@ -42,6 +42,12 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "propagate": False,
         },
+        # suppress Botocore checksum INFO logs¸¸¸
+        "botocore.httpchecksum": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
         # Root logger (optional)
         "": {
             "handlers": ["console"],
