@@ -31,7 +31,7 @@ logger = logging.getLogger("app")
 async def start_interview(
     job_title: str = Form(...),
     job_description: str = Form(...),
-    resume_file: UploadFile = File(...),
+    resume_temp_key: str = Form(...),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -46,7 +46,7 @@ async def start_interview(
             f"[MOCK_INTERVIEW_START] Initiating mock interview for user: {current_user.id}"
         )
         return start_mock_interview(
-            db, current_user.id, job_title, job_description, resume_file
+            db, current_user.id, job_title, job_description, resume_temp_key
         )
     except Exception as e:
         logger.error(

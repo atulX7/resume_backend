@@ -8,3 +8,7 @@ class ResumeResponse(BaseModel):
     title: str
     s3_url: str
     resume_data: Dict
+
+
+class TmpUploadResponse(BaseModel):
+    temp_key: str

@@ -39,6 +39,30 @@ Attach the following managed policies to your IAM Role (or IAM User, if using ac
 - `AmazonTranscribeFullAccess` – For converting audio to text during mock interviews
 
 ---
+### 🗂️ S3 “tmp/” Folder & Lifecycle Cleanup
+
+We use a **temporary** S3 prefix (`tmp/`) to stage uploaded resumes before a session is confirmed. To avoid orphaned files and unnecessary storage costs, add a lifecycle rule:
+
+1. **Prefix:** `tmp/`
+2. **Action:** Expire (Permanently delete) objects
+3. **Age:** 24 hours (or your desired TTL)
+
+```yaml
+# Example S3 Lifecycle configuration (in JSON)
+{
+  "Rules": [
+    {
+      "ID": "TmpFolderAutoExpire",
+      "Prefix": "tmp/",
+      "Status": "Enabled",
+      "Expiration": { "Days": 1 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 1 }
+    }
+  ]
+}
+```
+
+---
 
 ### 📬 AWS SQS Queue (Mock Interview Processing)
 

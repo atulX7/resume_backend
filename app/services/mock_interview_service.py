@@ -35,7 +35,7 @@ from app.utils.aws_utils import (
     upload_audio_to_s3_sync,
     generate_presigned_url,
     upload_mock_interview_data,
-    load_json_from_s3,
+    load_json_from_s3, move_s3_object,
 )
 from app.database.mock_interview import (
     create_mock_interview_session,
@@ -44,8 +44,8 @@ from app.database.mock_interview import (
     get_mock_interview_sessions_by_user,
 )
 
-from app.utils.resume_parser import extract_resume_text
-from app.utils.utils import generate_question_id, parse_ai_response
+from app.utils.resume_parser import get_resume_text_from_s3_key
+from app.utils.utils import generate_question_id, parse_ai_response, get_file_extension_from_s3_key
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -62,12 +62,24 @@ async def upload_audio_to_s3_async(*args, **kwargs):
     )
 
 
+def move_resume_to_session_folder(temp_key: str, user_id: str, session_id: str) -> str:
+    ext = get_file_extension_from_s3_key(temp_key)
+    resume_key = f"{user_id}/mock_interviews/{session_id}/data/resume.{ext}"
+    try:
+        move_s3_object(temp_key, resume_key)
+        logger.info(f"[S3_MOVE] {temp_key} → {resume_key}")
+        return resume_key
+    except Exception as e:
+        logger.error(f"[S3_MOVE] Failed to move resume: {e}", exc_info=True)
+        raise
+
+
 def start_mock_interview(
     db: Session,
     user_id: str,
     job_title: str,
     job_description: str,
-    resume_file: UploadFile,
+    resume_temp_key: str,
 ):
     """Starts a new mock interview session by storing resume and initializing the interview."""
     session_id = str(uuid.uuid4())
@@ -79,7 +91,7 @@ def start_mock_interview(
             logger.info("Using mock data for questions.")
             ai_response = MOCK_INTERVIEW_QUESTIONS_RESPONSE
         else:
-            resume_text = extract_resume_text(resume_file)
+            resume_text = get_resume_text_from_s3_key(resume_temp_key)
             prompt = INTERVIEW_QUESTION_PROMPT.format(
                 max_questions=MAX_QUESTIONS_PER_SESSION,
                 resume_text=resume_text,
@@ -108,7 +120,12 @@ def start_mock_interview(
             question_map_storage_key = upload_mock_interview_data(
                 user_id, session_id, MOCK_INTERVIEW_PREV_Q_FILE, questions_with_ids
             )
-            resume_storage_key = upload_resume_to_s3(resume_file, user_id, session_id)
+            # Move resume from temp → final S3 path
+            resume_storage_key = move_resume_to_session_folder(
+                temp_key=resume_temp_key,
+                user_id=user_id,
+                session_id=session_id
+            )
             jd_json = {"jd": job_description}
             jd_storage_key = upload_mock_interview_data(
                 user_id, session_id, MOCK_INTERVIEW_PREV_JD_FILE, jd_json

@@ -1,12 +1,14 @@
+import io
 import logging
 
 import fitz  # PyMuPDF
 import docx
 
 
-from app.utils.aws_utils import download_resume_from_s3, get_file_extension_from_s3_url
-
 from fastapi import UploadFile
+
+from app.utils.aws_utils import download_resume_from_s3_key
+from app.utils.utils import get_file_extension_from_s3_key
 
 logger = logging.getLogger("app")
 
@@ -61,19 +63,37 @@ def extract_resume_text(file: UploadFile):
         raise Exception(f"Error extracting resume text: {str(e)}")
 
 
-# todo: if not used delete it
-def get_resume_text_from_s3(s3_url: str):
+def extract_resume_text_from_bytes(file_bytes: io.BytesIO, extension: str) -> str:
+    """
+    Given a BytesIO and its extension, routes to the appropriate extractor.
+    """
+    logger.info(f"🔍 Extracting resume text from bytes (.{extension})")
+    try:
+        if extension == "pdf":
+            return extract_text_from_pdf(stream=file_bytes)
+        elif extension == "docx":
+            return extract_text_from_docx(stream=file_bytes)
+        elif extension in ("txt", "text"):
+            return file_bytes.read().decode("utf-8")
+        else:
+            raise ValueError(f"Unsupported extension: .{extension}")
+    except Exception:
+        logger.error("❌ Failed to extract text from bytes", exc_info=True)
+        raise
+
+
+def get_resume_text_from_s3_key(s3_key: str):
     """
     Downloads a resume from S3, extracts its file extension, and retrieves text.
 
-    :param s3_url: The S3 URL of the resume.
+    :param s3_key: The S3 key of the resume.
     :return: Extracted text content of the resume.
     """
-    logger.info(f"📥 Fetching and extracting resume text from S3 URL: {s3_url}")
+    logger.info(f"📥 Fetching and extracting resume text from S3 key: {s3_key}")
     try:
-        resume_file = download_resume_from_s3(s3_url)
-        resume_file_ext = get_file_extension_from_s3_url(s3_url)
-        resume_text = extract_resume_text(resume_file, resume_file_ext)
+        resume_file = download_resume_from_s3_key(s3_key)
+        resume_file_ext = get_file_extension_from_s3_key(s3_key)
+        resume_text = extract_resume_text_from_bytes(resume_file, resume_file_ext)
         logger.info("✅ Successfully extracted resume text from S3")
         return resume_text
     except Exception as e:

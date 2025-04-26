@@ -52,3 +52,19 @@ def calculate_interview_duration(start_time: datetime) -> float:
     except Exception as e:
         logger.error(f"Failed to calculate interview duration: {str(e)}")
         return 0.0
+
+
+
+def get_file_extension_from_s3_key(s3_key):
+    try:
+        file_extension = s3_key(".")[-1]
+        logger.info(
+            f"[S3_FILE_EXT] Extracted file extension '{file_extension}' from key: {s3_key}"
+        )
+        return file_extension
+    except Exception as e:
+        logger.error(
+            f"[S3_FILE_EXT] Failed to extract file extension from S3 key: {s3_key} | Error: {e}",
+            exc_info=True,
+        )
+        raise

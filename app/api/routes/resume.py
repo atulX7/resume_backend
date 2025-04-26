@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.middleware.auth_dependency import get_current_user
-from app.schemas.resume import ResumeResponse
+from app.schemas.resume import ResumeResponse, TmpUploadResponse
 from app.services.resume_service import (
     handle_resume_upload,
     handle_delete_resume,
@@ -11,9 +11,26 @@ from app.services.resume_service import (
     handle_resume_update,
 )
 from app.database.resume import get_resumes, get_resume
+from app.utils.aws_utils import upload_resume_to_tmp_s3
 
 router = APIRouter()
 logger = logging.getLogger("app")
+
+
+@router.post("/upload-temp-resume", response_model=TmpUploadResponse)
+async def upload_resume_temp(
+    resume_file: UploadFile = File(...),
+    current_user = Depends(get_current_user)
+):
+    """
+    Stage a resume upload into tmp/.  Returns the S3 key;
+    you will pass this key into your Start Interview call.
+    """
+    try:
+        tmp_key = upload_resume_to_tmp_s3(resume_file, current_user.id)
+        return TmpUploadResponse(temp_key=tmp_key)
+    except Exception as e:
+        raise HTTPException(500, f"Failed to stage resume: {e}")
 
 
 @router.post("/", response_model=ResumeResponse)
