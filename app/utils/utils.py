@@ -54,7 +54,6 @@ def calculate_interview_duration(start_time: datetime) -> float:
         return 0.0
 
 
-
 def get_file_extension_from_s3_key(s3_key):
     try:
         file_extension = s3_key(".")[-1]

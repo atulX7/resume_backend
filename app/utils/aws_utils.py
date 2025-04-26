@@ -78,7 +78,7 @@ def move_s3_object(src_key: str, dst_key: str) -> None:
         s3_client.copy_object(
             Bucket=bucket_name,
             CopySource={"Bucket": bucket_name, "Key": src_key},
-            Key=dst_key
+            Key=dst_key,
         )
         s3_client.delete_object(Bucket=bucket_name, Key=src_key)
         logger.info(f"[S3_MOVE] Move complete")
@@ -128,7 +128,7 @@ def generate_presigned_url(file_key: str, expiration: int = 3600) -> str:
     Raises:
         Exception: If there is an error generating the presigned URL.
     """
-    
+
     try:
         url = s3_client.generate_presigned_url(
             "get_object",
@@ -156,9 +156,7 @@ def delete_resume_from_s3(s3_url: str):
     """Deletes a resume from S3 given its URL."""
     try:
         # ✅ Extract file key from S3 URL
-        s3_file_key = s3_url.split(
-            f"https://{bucket_name}.s3.amazonaws.com/"
-        )[-1]
+        s3_file_key = s3_url.split(f"https://{bucket_name}.s3.amazonaws.com/")[-1]
 
         # ✅ Delete from S3
         s3_client.delete_object(Bucket=bucket_name, Key=s3_file_key)
@@ -174,7 +172,6 @@ def delete_resume_from_s3(s3_url: str):
 def download_resume_from_s3_key(s3_key: str):
     """Downloads the resume file from S3 and returns it as a file-like object."""
     try:
-        
         logger.info(f"[S3_DOWNLOAD] Fetching: {s3_key}")
         # ✅ Check if file exists before downloading
         s3_client.head_object(Bucket=bucket_name, Key=s3_key)
@@ -281,7 +278,6 @@ def upload_audio_to_s3_sync(
     filename: str,
     content_type: str = "audio/mpeg",
 ) -> str:
-    
     file_key = f"{user_id}/mock_interviews/{session_id}/audio/audio_{filename}"
 
     try:
@@ -305,7 +301,6 @@ def upload_audio_to_s3_sync(
 def upload_mock_interview_data(
     user_id: str, session_id: str, filename: str, data: dict | list
 ) -> str:
-    
     file_key = f"{user_id}/mock_interviews/{session_id}/data/{filename}"
     try:
         s3_client.put_object(
@@ -334,7 +329,7 @@ def load_json_from_s3(file_key: str) -> dict | list:
     Returns:
         dict | list: Parsed JSON content.
     """
-    
+
     if not file_key:
         logger.warning("[LOAD_JSON_S3] Empty file key provided")
         return {}

@@ -19,7 +19,8 @@ from app.utils.mock_data import (
     MOCK_INTERVIEW_EVALUATION_RESPONSE,
     MOCK_RESUME_STORAGE_KEY,
     MOCK_JD_STORAGE_KEY,
-    MOCK_QUES_MAP_STORAGE_KEY, MOCK_QUES_MAPPING,
+    MOCK_QUES_MAP_STORAGE_KEY,
+    MOCK_QUES_MAPPING,
 )
 from app.utils.mock_interview_utils import (
     format_skipped_question,
@@ -35,7 +36,8 @@ from app.utils.aws_utils import (
     upload_audio_to_s3_sync,
     generate_presigned_url,
     upload_mock_interview_data,
-    load_json_from_s3, move_s3_object,
+    load_json_from_s3,
+    move_s3_object,
 )
 from app.database.mock_interview import (
     create_mock_interview_session,
@@ -45,7 +47,11 @@ from app.database.mock_interview import (
 )
 
 from app.utils.resume_parser import get_resume_text_from_s3_key
-from app.utils.utils import generate_question_id, parse_ai_response, get_file_extension_from_s3_key
+from app.utils.utils import (
+    generate_question_id,
+    parse_ai_response,
+    get_file_extension_from_s3_key,
+)
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -322,7 +328,9 @@ async def update_question_mapping_for_answer(
     """
     # --- Step 1. Upload the audio file ---
     if settings.MOCK_DATA:
-        storage_file_key = f"{user_id}/mock_interviews/{session_id}/audio/mock_audio.mp3"
+        storage_file_key = (
+            f"{user_id}/mock_interviews/{session_id}/audio/mock_audio.mp3"
+        )
     else:
         try:
             content = await answer_audio.read()
@@ -346,7 +354,9 @@ async def update_question_mapping_for_answer(
         # --- Step 2. Retrieve the session and load the questions mapping file ---
         session_obj = get_mock_interview_session(db, session_id)
         try:
-            questions_mapping = load_json_from_s3(session_obj.questions_mapping_storage_key)
+            questions_mapping = load_json_from_s3(
+                session_obj.questions_mapping_storage_key
+            )
             logger.info(
                 f"[SERVICE] Fetched questions mapping file for session {session_id}"
             )
@@ -374,7 +384,9 @@ async def update_question_mapping_for_answer(
             logger.error(
                 f"[SERVICE] Question ID {question_id} not found in mapping file for session {session_id}"
             )
-            raise HTTPException(status_code=400, detail="Question ID not found in mapping")
+            raise HTTPException(
+                status_code=400, detail="Question ID not found in mapping"
+            )
 
         # --- Step 4. Re-upload the updated questions mapping file ---
         try:
@@ -393,6 +405,8 @@ async def update_question_mapping_for_answer(
                 f"[SERVICE] Failed to update questions mapping file for session {session_id}: {exc}",
                 exc_info=True,
             )
-            raise HTTPException(status_code=500, detail="Failed to update questions mapping")
+            raise HTTPException(
+                status_code=500, detail="Failed to update questions mapping"
+            )
 
     return {"status": "success", "answer_audio_key": storage_file_key}

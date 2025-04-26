@@ -10,7 +10,8 @@ from app.services.mock_interview_service import (
     start_mock_interview,
     get_mock_interview_sessions_for_user,
     get_mock_interview_session_details,
-    update_question_mapping_for_answer, process_mock_interview_worker,
+    update_question_mapping_for_answer,
+    process_mock_interview_worker,
 )
 from app.schemas.mock_interview import (
     MockInterviewQuestionResponse,
@@ -56,7 +57,11 @@ async def start_interview(
 
 
 @router.post("/{session_id}/process", response_model=ProcessingStartedResponse)
-async def process_interview(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+async def process_interview(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Processes the mock interview by loading the updated questions mapping (with answer audio file keys)
     from storage and dispatching the session for asynchronous evaluation.
@@ -70,7 +75,9 @@ async def process_interview(session_id: str, db: Session = Depends(get_db), curr
             "session_id": session_id,
         }
         if settings.MOCK_DATA:
-            logger.info(f"[ROUTE] MOCK mode enabled. Processing interview inline for session {session_id}")
+            logger.info(
+                f"[ROUTE] MOCK mode enabled. Processing interview inline for session {session_id}"
+            )
             await process_mock_interview_worker(
                 db=db,
                 user_id=current_user.id,
@@ -82,7 +89,9 @@ async def process_interview(session_id: str, db: Session = Depends(get_db), curr
             }
         else:
             send_to_mock_interview_queue(payload)
-            logger.info(f"[ROUTE] Session {session_id} queued successfully for processing")
+            logger.info(
+                f"[ROUTE] Session {session_id} queued successfully for processing"
+            )
             return {
                 "status": "processing",
                 "message": "Your interview is being evaluated. You'll be notified once it's done.",

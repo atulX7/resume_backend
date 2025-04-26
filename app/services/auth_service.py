@@ -69,5 +69,7 @@ def fetch_google_user(access_token: str):
         return response.json()
 
     except requests.RequestException as e:
-        logger.exception(f"[AUTH] Error while contacting Google OAuth endpoint: {str(e)}")
+        logger.exception(
+            f"[AUTH] Error while contacting Google OAuth endpoint: {str(e)}"
+        )
         raise HTTPException(status_code=502, detail="Failed to contact Google OAuth")

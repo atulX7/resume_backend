@@ -146,7 +146,7 @@ MOCK_QUES_MAPPING = [
     {
         "question_id": "",
         "question": "Can you elaborate on a project where you had to migrate infrastructure to Google Cloud and how you ensured the transition was seamless?",
-        "answer_audio": "b7465672-73a5-4ce0-bd35-69c2297c363a/mock.mp3"
+        "answer_audio": "b7465672-73a5-4ce0-bd35-69c2297c363a/mock.mp3",
     }
 ]
 

@@ -25,10 +25,13 @@ def format_skipped_question(question):
         "transcription": "",
         "score": 0.0,
         "feedback": "No response provided.",
-        "follow_up_question": ""
+        "follow_up_question": "",
     }
 
-def get_openai_interview_evaluation(job_title: str, interview_log: list[dict[str, any]]):
+
+def get_openai_interview_evaluation(
+    job_title: str, interview_log: list[dict[str, any]]
+):
     """Calls OpenAI once to evaluate all answers and provide interview-level assessment."""
     logger.info(f"📡 Calling OpenAI for interview evaluation for job: {job_title}")
     prompt = INTERVIEW_EVALUATION_PROMPT.format(
@@ -65,7 +68,9 @@ def process_ai_response(ai_response_json: str, interview_log: list[dict[str, any
 
 async def send_interview_result_email(db: Session, user_id: str, session, final_evaluation):
     """Sends an email notification to the candidate with the interview results."""
-    queue_logger.info(f"📧 Preparing to send interview result email for user: {user_id}")
+    queue_logger.info(
+        f"📧 Preparing to send interview result email for user: {user_id}"
+    )
     try:
         user = get_user_by_id(db, user_id)
 
