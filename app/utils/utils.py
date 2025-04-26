@@ -56,7 +56,7 @@ def calculate_interview_duration(start_time: datetime) -> float:
 
 def get_file_extension_from_s3_key(s3_key):
     try:
-        file_extension = s3_key(".")[-1]
+        file_extension = s3_key.rsplit(".", 1)[-1]
         logger.info(
             f"[S3_FILE_EXT] Extracted file extension '{file_extension}' from key: {s3_key}"
         )

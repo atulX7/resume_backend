@@ -25,7 +25,7 @@ Your mock interview session for **{job_title}** has been evaluated.
 - 📌 **Areas for Growth:** {growth_areas}
 - ⏳ **Duration:** {duration} minutes
 
-You can view your results here: [View Results](http://yourfrontend.com/interview/{session_id})
+You can view your results here: [View Results](https://resuwin.com/dashboard/mock-mate/{session_id})
 
 Regards,  
 ResuWin Team

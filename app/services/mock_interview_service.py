@@ -1,3 +1,4 @@
+import time
 import uuid
 
 from sqlalchemy.orm import Session
@@ -331,6 +332,7 @@ async def update_question_mapping_for_answer(
         storage_file_key = (
             f"{user_id}/mock_interviews/{session_id}/audio/mock_audio.mp3"
         )
+        time.sleep(10)
     else:
         try:
             content = await answer_audio.read()

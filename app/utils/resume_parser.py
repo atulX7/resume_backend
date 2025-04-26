@@ -13,32 +13,40 @@ from app.utils.utils import get_file_extension_from_s3_key
 logger = logging.getLogger("app")
 
 
-def extract_text_from_pdf(file: UploadFile):
-    """Extracts text from a PDF while maintaining sections."""
-    logger.info(f"📄 Extracting text from PDF file: {file.filename}")
+def extract_text_from_pdf(
+    file: UploadFile | io.BytesIO,
+    *,
+    filename: str | None = None
+) -> str:
+    """Extracts text from a PDF.  Accepts either an UploadFile or a BytesIO."""
+    name = filename or getattr(file, "filename", "bytes-resume.pdf")
+    logger.info(f"📄 Extracting text from PDF file: {name}")
     try:
-        text = []
-        doc = fitz.open(stream=file.file.read(), filetype="pdf")
-        for page in doc:
-            text.append(page.get_text("text"))
-        return "\n".join(text)
+        # if it's an UploadFile, read from .file; otherwise assume it's BytesIO
+        data = file.file.read() if hasattr(file, "file") else file.read()
+        doc = fitz.open(stream=data, filetype="pdf")
+        pages = [page.get_text("text") for page in doc]
+        return "\n".join(pages)
     except Exception as e:
-        logger.error(f"❌ Failed to extract text from PDF: {str(e)}", exc_info=True)
-        raise Exception(f"Error extracting text from PDF: {str(e)}")
+        logger.error(f"❌ Failed to extract text from PDF: {e}", exc_info=True)
+        raise
 
-
-def extract_text_from_docx(file: UploadFile):
-    """Extracts text from a DOCX file while maintaining structure."""
-    logger.info(f"📄 Extracting text from DOCX file: {file.filename}")
+def extract_text_from_docx(
+    file: UploadFile | io.BytesIO,
+    *,
+    filename: str | None = None
+) -> str:
+    """Extracts text from a DOCX.  Accepts either an UploadFile or a BytesIO."""
+    name = filename or getattr(file, "filename", "bytes-resume.docx")
+    logger.info(f"📄 Extracting text from DOCX file: {name}")
     try:
-        text = []
-        doc = docx.Document(file.file)
-        for para in doc.paragraphs:
-            text.append(para.text)
-        return "\n".join(text)
+        # wrap BytesIO in a file‐like object accepted by python‐docx
+        stream = file.file if hasattr(file, "file") else file
+        doc = docx.Document(stream)
+        return "\n".join(para.text for para in doc.paragraphs)
     except Exception as e:
-        logger.error(f"❌ Failed to extract text from DOCX: {str(e)}", exc_info=True)
-        raise Exception(f"Error extracting text from DOCX: {str(e)}")
+        logger.error(f"❌ Failed to extract text from DOCX: {e}", exc_info=True)
+        raise
 
 
 def extract_resume_text(file: UploadFile):
@@ -70,9 +78,9 @@ def extract_resume_text_from_bytes(file_bytes: io.BytesIO, extension: str) -> st
     logger.info(f"🔍 Extracting resume text from bytes (.{extension})")
     try:
         if extension == "pdf":
-            return extract_text_from_pdf(stream=file_bytes)
+            return extract_text_from_pdf(file_bytes, filename=f"resume.{extension}")
         elif extension == "docx":
-            return extract_text_from_docx(stream=file_bytes)
+            return extract_text_from_docx(file_bytes, filename=f"resume.{extension}")
         elif extension in ("txt", "text"):
             return file_bytes.read().decode("utf-8")
         else:
