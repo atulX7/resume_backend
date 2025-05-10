@@ -251,11 +251,10 @@ def transcribe_audio(file_key: str) -> str:
             return transcript_text
 
         queue_logger.warning("[TRANSCRIBE] Transcription failed or incomplete")
-        return "Transcription failed or incomplete."
-
-    except (BotoCoreError, NoCredentialsError) as e:
-        queue_logger.error(f"[TRANSCRIBE] AWS error: {e}", exc_info=True)
-        raise
+        return ""
+    except Exception as e:
+        queue_logger.error(f"[TRANSCRIBE] error: {str(e)}. Returning empty transcription", exc_info=True)
+        return ""
 
 
 def send_to_mock_interview_queue(payload: dict):
